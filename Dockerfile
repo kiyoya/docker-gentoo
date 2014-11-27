@@ -8,6 +8,9 @@ RUN emerge --quiet -u --deep --newuse \
       app-misc/screen \
       app-shells/zsh \
       dev-vcs/git \
-      net-libs/nodejs
+      net-libs/nodejs \
       world;\
     rm -f '/usr/portage/distfiles/*'
+
+COPY docker-init.sh /
+CMD ["/docker-init.sh"]

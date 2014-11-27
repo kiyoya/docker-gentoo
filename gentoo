@@ -1,0 +1,38 @@
+#!/bin/sh
+
+set -e
+
+NAME="${NAME:-kiyoya}"
+IMAGE="${IMAGE:-kiyoya/docker-kiyoya}"
+TAG="${TAG:-latest}"
+
+function job_start() {
+  docker run -d -i \
+    --name "${NAME}" \
+    --net=host \
+    -v /home:/home \
+    "${IMAGE}:${TAG}" /bin/sh
+}
+
+function job_stop() {
+  docker kill "${NAME}"
+  docker rm "${NAME}"
+}
+
+case "${1}" in
+start)
+  job_start
+  ;;
+stop)
+  job_stop
+  ;;
+restart)
+  job_stop
+  job_start
+  ;;
+attach)
+  ~/.bin/docker-enter "${NAME}" /docker-init.sh
+  ;;
+*)
+  echo "usage: $0 [ start | stop | restart | attach ]"
+esac
