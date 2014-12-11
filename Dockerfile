@@ -13,4 +13,3 @@ RUN emerge --quiet -u --deep --newuse \
     rm -f '/usr/portage/distfiles/*'
 
 COPY docker-init.sh /
-CMD ["/docker-init.sh"]

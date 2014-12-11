@@ -6,8 +6,16 @@ NAME="${NAME:-kiyoya}"
 IMAGE="${IMAGE:-kiyoya/docker-kiyoya}"
 TAG="${TAG:-latest}"
 
+function job_enter() {
+  docker exec -i -t "${NAME}" /docker-init.sh kiyoya
+}
+
+function job_prepare() {
+  docker pull "${IMAGE}:${TAG}"
+}
+
 function job_start() {
-  docker run -d -i \
+  docker run -d -i -t \
     --name "${NAME}" \
     --net=host \
     -v /home:/home \
@@ -20,19 +28,22 @@ function job_stop() {
 }
 
 case "${1}" in
+enter)
+  job_enter
+  ;;
+prepare)
+  job_prepare
+  ;;
+restart)
+  job_stop
+  job_start
+  ;;
 start)
   job_start
   ;;
 stop)
   job_stop
   ;;
-restart)
-  job_stop
-  job_start
-  ;;
-attach)
-  ~/.bin/docker-enter "${NAME}" /docker-init.sh
-  ;;
 *)
-  echo "usage: $0 [ start | stop | restart | attach ]"
+  echo "usage: $0 [ enter | prepare | restart | start | stop ]"
 esac
