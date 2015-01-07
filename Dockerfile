@@ -7,6 +7,7 @@ RUN emerge --quiet -u media-sound/murmur;\
     rm -f '/usr/portage/distfiles/*'
 
 ENV HOME /var/lib/murmur
+EXPOSE 64738
 
 ENTRYPOINT ["/usr/bin/murmurd"]
-CMD ["-ini", "/etc/murmur/murmur.ini"]
+CMD ["-fg", "-ini", "/etc/murmur/murmur.ini"]
