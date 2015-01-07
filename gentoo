@@ -2,8 +2,8 @@
 
 set -e
 
-NAME="${NAME:-kiyoya}"
-IMAGE="${IMAGE:-kiyoya/docker-kiyoya}"
+NAME="${NAME:-gentoo}"
+IMAGE="${IMAGE:-kiyoya/gentoo}"
 TAG="${TAG:-latest}"
 
 function job_enter() {
