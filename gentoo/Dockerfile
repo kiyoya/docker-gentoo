@@ -7,9 +7,11 @@ RUN echo 'USE="${USE} zsh-completion"' >> /etc/portage/make.conf
 RUN emerge --quiet -u --deep --newuse \
       app-misc/screen \
       app-shells/zsh \
+      dev-python/pip \
       dev-vcs/git \
       net-libs/nodejs \
       world;\
     rm -f '/usr/portage/distfiles/*'
+RUN pip install awscli
 
 COPY docker-init.sh /
