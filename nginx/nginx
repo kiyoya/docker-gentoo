@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -e
+
+DATADIR="${DATADIR:-/var/data/nginx}"
+IMAGE="${IMAGE:-nginx}"
+NAME="${NAME:-nginx}"
+TAG="${TAG:-latest}"
+
+function job_prepare() {
+  docker pull "${IMAGE}:${TAG}"
+}
+
+function job_start() {
+  docker run -d -it \
+    -p 80:80 \
+    --name "${NAME}" \
+    -v "${DATADIR}/nginx.conf:/etc/nginx/nginx.conf:ro" \
+    -v "${DATADIR}/log:/var/log/nginx" \
+    -v "${DATADIR}/html:/var/html:ro" \
+    "${IMAGE}:${TAG}"
+}
+
+function job_stop() {
+  docker kill "${NAME}"
+  docker rm "${NAME}"
+}
+
+case "${1}" in
+prepare)
+  job_prepare
+  ;;
+restart)
+  job_stop
+  job_start
+  ;;
+start)
+  job_start
+  ;;
+stop)
+  job_stop
+  ;;
+*)
+  echo "usage: $0 [ prepare | restart | start | stop ]"
+esac
