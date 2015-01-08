@@ -1,0 +1,12 @@
+[Unit]
+Description=murmur
+After=docker.service
+Requires=docker.service
+
+[Service]
+TimeoutStartSec=0
+ExecStart=/usr/bin/docker start -a murmur
+ExecStop=/usr/bin/docker stop murmur
+
+[Install]
+WantedBy=multi-user.target
