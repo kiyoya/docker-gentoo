@@ -1,7 +1,7 @@
 [Unit]
 Description=nginx
-After=docker.service
-Requires=docker.service
+After=docker-drupal.service
+Requires=docker-drupal.service
 
 [Service]
 TimeoutStartSec=0
