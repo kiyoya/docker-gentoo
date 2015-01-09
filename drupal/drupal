@@ -18,18 +18,7 @@ function job_start() {
     --name "${NAME}" \
     --link "${MARIADB}:mysql" \
     -v "${DATADIR}:/var/www/html" \
-    "${IMAGE}:${TAG}" \
-    php-fpm -F
-  docker exec "${NAME}" \
-    apt-get update
-  docker exec "${NAME}" \
-    apt-get install -y libjpeg-dev libpng-dev
-  docker exec "${NAME}" \
-    docker-php-ext-configure gd \
-    --with-jpeg-dir=/usr --with-png-dir=/usr
-  docker exec "${NAME}" \
-    docker-php-ext-install gd mbstring pdo_mysql
-  docker restart "${NAME}"
+    "${IMAGE}:${TAG}"
 }
 
 function job_stop() {
