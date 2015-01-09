@@ -1,0 +1,49 @@
+#!/bin/sh
+
+set -e
+
+DATADIR="${DATADIR:-/var/data/mariadb}"
+IMAGE="${IMAGE:-mariadb}"
+NAME="${NAME:-mariadb}"
+TAG="${TAG:-10}"
+
+function job_sql() {
+  docker exec -it "${NAME}" mysql -u root -p
+}
+
+function job_prepare() {
+  docker pull "${IMAGE}:${TAG}"
+}
+
+function job_start() {
+  docker run -d -it \
+    --name "${NAME}" \
+    -e MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD}" \
+    "${IMAGE}:${TAG}"
+}
+
+function job_stop() {
+  docker kill "${NAME}"
+  docker rm "${NAME}"
+}
+
+case "${1}" in
+prepare)
+  job_prepare
+  ;;
+restart)
+  job_stop
+  job_start
+  ;;
+sql)
+  job_sql
+  ;;
+start)
+  job_start
+  ;;
+stop)
+  job_stop
+  ;;
+*)
+  echo "usage: $0 [ prepare | restart | sql | start | stop ]"
+esac
