@@ -14,4 +14,4 @@ RUN emerge --quiet -u --deep --newuse \
     rm -f '/usr/portage/distfiles/*'
 RUN pip install awscli
 
-COPY docker-init.sh /
+CMD ['/bin/bash']

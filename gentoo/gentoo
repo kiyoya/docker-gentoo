@@ -7,7 +7,7 @@ IMAGE="${IMAGE:-kiyoya/gentoo}"
 TAG="${TAG:-latest}"
 
 function job_enter() {
-  docker exec -i -t "${NAME}" /docker-init.sh kiyoya
+  docker exec -i -t "${NAME}" /bin/bash
 }
 
 function job_prepare() {
@@ -19,7 +19,7 @@ function job_start() {
     --name "${NAME}" \
     --net=host \
     -v /home:/home \
-    "${IMAGE}:${TAG}" /bin/sh
+    "${IMAGE}:${TAG}" /bin/bash
 }
 
 function job_stop() {
