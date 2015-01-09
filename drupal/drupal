@@ -3,9 +3,9 @@
 set -e
 
 DATADIR="${DATADIR:-/var/data/drupal}"
-IMAGE="${IMAGE:-php}"
+IMAGE="${IMAGE:-kiyoya/drupal-fpm}"
 NAME="${NAME:-drupal}"
-TAG="${TAG:-5-fpm}"
+TAG="${TAG:-latest}"
 
 MARIADB="${MARIADB:-mariadb}"
 
