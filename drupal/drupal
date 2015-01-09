@@ -1,0 +1,56 @@
+#!/bin/sh
+
+set -e
+
+DATADIR="${DATADIR:-/var/data/drupal}"
+IMAGE="${IMAGE:-php}"
+NAME="${NAME:-drupal}"
+TAG="${TAG:-5-fpm}"
+
+MARIADB="${MARIADB:-mariadb}"
+
+function job_prepare() {
+  docker pull "${IMAGE}:${TAG}"
+}
+
+function job_start() {
+  docker run -d -it \
+    --name "${NAME}" \
+    --link "${MARIADB}:mysql" \
+    -v "${DATADIR}:/var/www/html" \
+    "${IMAGE}:${TAG}" \
+    php-fpm -F
+  docker exec "${NAME}" \
+    apt-get update
+  docker exec "${NAME}" \
+    apt-get install -y libjpeg-dev libpng-dev
+  docker exec "${NAME}" \
+    docker-php-ext-configure gd \
+    --with-jpeg-dir=/usr --with-png-dir=/usr
+  docker exec "${NAME}" \
+    docker-php-ext-install gd mbstring pdo_mysql
+  docker restart "${NAME}"
+}
+
+function job_stop() {
+  docker kill "${NAME}"
+  docker rm "${NAME}"
+}
+
+case "${1}" in
+prepare)
+  job_prepare
+  ;;
+restart)
+  job_stop
+  job_start
+  ;;
+start)
+  job_start
+  ;;
+stop)
+  job_stop
+  ;;
+*)
+  echo "usage: $0 [ prepare | restart | start | stop ]"
+esac
