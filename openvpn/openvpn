@@ -1,0 +1,45 @@
+#!/bin/sh
+
+set -e
+
+DATADIR="${DATADIR:-/var/data/openvpn}"
+IMAGE="${IMAGE:-kiyoya/openvpn}"
+NAME="${NAME:-openvpn}"
+TAG="${TAG:-latest}"
+
+function job_prepare() {
+  docker pull "${IMAGE}:${TAG}"
+}
+
+function job_start() {
+  sudo docker run -d -it \
+    -p 1194:1194/udp \
+    --cap-add=NET_ADMIN \
+    --device=/dev/net/tun \
+    --name "${NAME}" \
+    -v "${DATADIR}:/etc/openvpn:ro" \
+    "${IMAGE}:${TAG}"
+}
+
+function job_stop() {
+  sudo docker kill "${NAME}"
+  sudo docker rm "${NAME}"
+}
+
+case "${1}" in
+prepare)
+  job_prepare
+  ;;
+restart)
+  job_stop
+  job_start
+  ;;
+start)
+  job_start
+  ;;
+stop)
+  job_stop
+  ;;
+*)
+  echo "usage: $0 [ prepare | restart | start | stop ]"
+esac
