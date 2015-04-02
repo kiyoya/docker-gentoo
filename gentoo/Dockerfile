@@ -14,4 +14,7 @@ RUN emerge --quiet -u --deep --newuse \
     rm -f '/usr/portage/distfiles/*'
 RUN pip install awscli
 
-CMD ['/bin/bash']
+ADD myinit.sh /
+
+ENTRYPOINT ["sudo", "-u", "kiyoya", "-i"]
+CMD ["/myinit.sh"]

@@ -19,7 +19,7 @@ function job_start() {
     --name "${NAME}" \
     --net=host \
     -v /home:/home \
-    "${IMAGE}:${TAG}" /bin/bash
+    "${IMAGE}:${TAG}"
 }
 
 function job_stop() {
