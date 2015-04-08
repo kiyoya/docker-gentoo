@@ -1,7 +1,7 @@
 FROM fukansystem/gentoo:latest
 MAINTAINER kiyoya <kiyoya@gmail.com>
 
-ADD package.mask /etc/portage/package.mask
+ADD package.mask /etc/portage/package.mask/openvpn
 ADD package.keywords /etc/portage/package.keywords/openvpn
 ADD openvpn-2.3.4.ebuild \
     /usr/portage/net-misc/openvpn/openvpn-2.3.4.ebuild
