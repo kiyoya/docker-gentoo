@@ -12,6 +12,7 @@ RUN emerge --quiet --newuse \
       net-libs/nodejs && \
     rm -f '/usr/portage/distfiles/*'
 RUN pip install awscli
+RUN npm install -g bower
 
 ADD myinit.sh /
 
