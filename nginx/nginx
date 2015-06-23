@@ -17,7 +17,6 @@ function job_start() {
   docker run -d -it \
     -p 80:80 \
     --name "${NAME}" \
-    --link "${DRUPAL}:drupal" \
     -v "${DATADIR}/nginx.conf:/etc/nginx/nginx.conf:ro" \
     -v "${DATADIR}/log:/var/log/nginx" \
     -v "${DATADIR}/html:/var/html:ro" \

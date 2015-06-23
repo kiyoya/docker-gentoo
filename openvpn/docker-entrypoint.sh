@@ -6,6 +6,6 @@ set -e
 
 [ -c /dev/net/tun ] || mknod /dev/net/tun c 10 200
 
-[ -x /etc/openvpn/iptables.sh ] && /etc/openvpn/iptables.sh
+/etc/openvpn/iptables.sh
 
 exec /usr/sbin/openvpn --config /etc/openvpn/openvpn.conf
