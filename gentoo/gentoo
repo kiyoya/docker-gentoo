@@ -18,6 +18,8 @@ function job_start() {
   docker run -d -i -t \
     --name "${NAME}" \
     --net=host \
+    -e "MY_UID=$(id -u)" \
+    -e "MY_GID=$(id -g)" \
     -v /home:/home \
     "${IMAGE}:${TAG}"
 }
