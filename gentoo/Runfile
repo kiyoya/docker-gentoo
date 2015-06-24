@@ -1,6 +1,6 @@
 #!/bin/sh
 
-groupadd -g "${MY_GID}" kiyoya
-useradd -u "${MY_UID}" -g kiyoya -G wheel -s /bin/zsh kiyoya
+groupadd -g "${MY_GID}" "${MY_USER}"
+useradd -u "${MY_UID}" -d "${MY_HOME}" -g "${MY_USER}" -G wheel -s /bin/zsh "${MY_USER}"
 exec >/dev/tty 2>/dev/tty </dev/tty
-sudo -u kiyoya -i -- screen -xRUO
+sudo -u "${MY_USER}" -i -- screen -xRUO

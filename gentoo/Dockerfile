@@ -20,4 +20,4 @@ RUN npm install -g \
 
 ADD Runfile /
 
-CMD ["/Runfile"]
+ENTRYPOINT ["/Runfile"]

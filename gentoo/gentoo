@@ -6,6 +6,11 @@ NAME="${NAME:-gentoo}"
 IMAGE="${IMAGE:-kiyoya/gentoo}"
 TAG="${TAG:-latest}"
 
+MY_UID="${MY_UID:-$(id -u)}"
+MY_GID="${MY_GID:-$(id -g)}"
+MY_USER="${MY_USER:-$(whoami)}"
+MY_HOME="${MY_HOME:-${HOME}}"
+
 function job_enter() {
   docker exec -i -t "${NAME}" /bin/bash
 }
@@ -18,9 +23,12 @@ function job_start() {
   docker run -d -i -t \
     --name "${NAME}" \
     --net=host \
-    -e "MY_UID=$(id -u)" \
-    -e "MY_GID=$(id -g)" \
-    -v /home:/home \
+    -e "MY_UID=${MY_UID}" \
+    -e "MY_GID=${MY_GID}" \
+    -e "MY_USER=${MY_USER}" \
+    -e "MY_HOME=${MY_HOME}" \
+    -v "${MY_HOME}/.screen" \
+    -v "${MY_HOME}:${MY_HOME}" \
     "${IMAGE}:${TAG}"
 }
 
