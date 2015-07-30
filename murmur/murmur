@@ -1,45 +1,46 @@
 #!/bin/sh
 
-set -e
+set -eu
 
 DATADIR="${DATADIR:-/var/data/murmur}"
 IMAGE="${IMAGE:-kiyoya/murmur}"
 NAME="${NAME:-murmur}"
 TAG="${TAG:-latest}"
 
-function job_prepare() {
+function job_down() {
+  docker stop "${NAME}"
+  docker rm "${NAME}"
+}
+
+function job_pull() {
   docker pull "${IMAGE}:${TAG}"
 }
 
-function job_start() {
+function job_up() {
   docker run -d \
     -p 64738:64738 \
     -p 64738:64738/udp \
     --name "${NAME}" \
     -v "${DATADIR}/murmur.ini:/etc/murmur/murmur.ini:ro" \
     -v "${DATADIR}/murmur.sqlite:/var/lib/murmur/murmur.sqlite" \
+    --restart always \
     "${IMAGE}:${TAG}"
 }
 
-function job_stop() {
-  docker kill "${NAME}"
-  docker rm "${NAME}"
-}
-
 case "${1}" in
-prepare)
-  job_prepare
+down)
+  job_down
   ;;
-restart)
-  job_stop
-  job_start
+pull)
+  job_pull
   ;;
-start)
-  job_start
+reload)
+  job_down
+  job_up
   ;;
-stop)
-  job_stop
+up)
+  job_up
   ;;
 *)
-  echo "usage: $0 [ prepare | restart | start | stop ]"
+  echo "usage: $0 [ down | pull | reload | up ]"
 esac

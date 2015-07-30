@@ -1,45 +1,46 @@
 #!/bin/sh
 
-set -e
+set -eu
 
 DATADIR="${DATADIR:-/var/data/openvpn}"
 IMAGE="${IMAGE:-kiyoya/openvpn}"
 NAME="${NAME:-openvpn}"
 TAG="${TAG:-latest}"
 
-function job_prepare() {
+function job_down() {
+  sudo docker stop "${NAME}"
+  sudo docker rm "${NAME}"
+}
+
+function job_pull() {
   docker pull "${IMAGE}:${TAG}"
 }
 
-function job_start() {
+function job_up() {
   sudo docker run -d -it \
     -p 1194:1194/udp \
     --cap-add=NET_ADMIN \
     --device=/dev/net/tun \
     --name "${NAME}" \
     -v "${DATADIR}:/etc/openvpn:ro" \
+    --restart always \
     "${IMAGE}:${TAG}"
 }
 
-function job_stop() {
-  sudo docker kill "${NAME}"
-  sudo docker rm "${NAME}"
-}
-
 case "${1}" in
-prepare)
-  job_prepare
+down)
+  job_down
   ;;
-restart)
-  job_stop
-  job_start
+pull)
+  job_pull
   ;;
-start)
-  job_start
+reload)
+  job_down
+  job_up
   ;;
-stop)
-  job_stop
+up)
+  job_up
   ;;
 *)
-  echo "usage: $0 [ prepare | restart | start | stop ]"
+  echo "usage: $0 [ down | pull | reload | up ]"
 esac
