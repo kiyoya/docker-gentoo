@@ -16,7 +16,8 @@ RUN emerge --quiet --newuse --update \
 RUN pip install awscli
 RUN npm install -g \
       bower \
-      polyserve
+      polyserve \
+      react-tools
 
 ADD Runfile /
 

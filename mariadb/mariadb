@@ -1,11 +1,16 @@
 #!/bin/sh
 
-set -e
+set -eu
 
 DATADIR="${DATADIR:-/var/data/mariadb}"
 IMAGE="${IMAGE:-mariadb}"
 NAME="${NAME:-mariadb}"
 TAG="${TAG:-10}"
+
+function job_down() {
+  docker stop "${NAME}"
+  docker rm "${NAME}"
+}
 
 function job_sql() {
   docker exec -it "${NAME}" mysql -u root -p "${DATABASE}"
@@ -15,7 +20,7 @@ function job_sql_stdio() {
   docker exec -i "${NAME}" mysql -u root --password="${MYSQL_ROOT_PASSWORD}" "${DATABASE}"
 }
 
-function job_prepare() {
+function job_pull() {
   docker pull "${IMAGE}:${TAG}"
 }
 
@@ -27,28 +32,26 @@ function job_init() {
     "${IMAGE}:${TAG}"
 }
 
-function job_start() {
+function job_up() {
   docker run -d -it \
     --name "${NAME}" \
     -v "${DATADIR}:/var/lib/mysql" \
     "${IMAGE}:${TAG}"
 }
 
-function job_stop() {
-  docker kill "${NAME}"
-  docker rm "${NAME}"
-}
-
 case "${1}" in
+down)
+  job_down
+  ;;
 init)
   job_init
   ;;
-prepare)
-  job_prepare
+pull)
+  job_pull
   ;;
-restart)
-  job_stop
-  job_start
+reload)
+  job_down
+  job_up
   ;;
 sql)
   job_sql
@@ -56,12 +59,9 @@ sql)
 sql_stdio)
   job_sql_stdio
   ;;
-start)
-  job_start
-  ;;
-stop)
-  job_stop
+up)
+  job_up
   ;;
 *)
-  echo "usage: $0 [ init | prepare | restart | sql | sql_stdio | start | stop ]"
+  echo "usage: $0 [ down | init | pull | reload | sql | sql_stdio | up ]"
 esac
