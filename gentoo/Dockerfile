@@ -3,7 +3,8 @@ MAINTAINER kiyoya <kiyoya@gmail.com>
 
 RUN echo 'USE="${USE} zsh-completion"' >> /etc/portage/make.conf
 RUN mkdir -p /etc/portage/package.{keywords,mask,use} && \
-    echo "app-editors/vim python" > /etc/portage/package.use/gentoo
+    echo "app-editors/vim python" >> /etc/portage/package.use/gentoo && \
+    echo "dev-python/numpy lapack" >> /etc/portage/package.use/gentoo
 RUN emerge --quiet --newuse --update \
       app-editors/vim \
       app-misc/screen \
