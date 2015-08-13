@@ -23,6 +23,7 @@ function job_start() {
   docker run -d -i -t \
     --name "${NAME}" \
     --net=host \
+    --log-driver=none \
     -e "MY_UID=${MY_UID}" \
     -e "MY_GID=${MY_GID}" \
     -e "MY_USER=${MY_USER}" \
