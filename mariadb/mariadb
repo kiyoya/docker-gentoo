@@ -36,6 +36,7 @@ function job_up() {
   docker run -d -it \
     --name "${NAME}" \
     -v "${DATADIR}:/var/lib/mysql" \
+    --restart=always \
     "${IMAGE}:${TAG}"
 }
 
