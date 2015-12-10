@@ -2,9 +2,9 @@
 
 set -eu
 
-DATADIR="${DATADIR:-/var/data/openvpn}"
-IMAGE="${IMAGE:-kiyoya/openvpn}"
-NAME="${NAME:-openvpn}"
+DATADIR="${DATADIR:-/var/data/kiyoya}"
+IMAGE="${IMAGE:-kiyoya/mol}"
+NAME="${NAME:-kiyoya}"
 TAG="${TAG:-latest}"
 
 function job_down() {
@@ -18,7 +18,8 @@ function job_pull() {
 
 function job_up() {
   sudo docker run -d -it \
-    -p 1194:1194/udp \
+    -p 443:443 \
+    -p 443:443/udp \
     --cap-add=NET_ADMIN \
     --device=/dev/net/tun \
     --name "${NAME}" \

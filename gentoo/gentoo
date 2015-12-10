@@ -17,7 +17,7 @@ function job_down() {
 }
 
 function job_enter() {
-  docker exec -i -t "${NAME}" /bin/bash
+  docker exec -it "${NAME}" sudo -u "${MY_USER}" -i
 }
 
 function job_pull() {
