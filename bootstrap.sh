@@ -10,6 +10,12 @@ GENTOO_IMAGE="${GENTOO_IMAGE:-gentoo/stage3-amd64}"
 PORTAGE_IMAGE="${PORTAGE_IMAGE:-gentoo/portage}"
 PORTAGE_NAME="${PORTAGE_NAME:-portage}"
 
+# Fundamental packages
+PACKAGES="
+  sys-apps/baselayout
+  sys-apps/busybox
+  sys-libs/glibc"
+
 case "${MSYSTEM:-}" in
   MINGW*)
     function _absolute_path() {
@@ -56,6 +62,22 @@ case ${1:-} in
     docker create --name "${NAME}" \
       -v "${BUILD_ROOT}" \
       "${BUILD_IMAGE}"
+    $0 emerge ${PACKAGES}
+    ;;
+  emerge)
+    NAME="${2}"
+    docker run -it --rm \
+      --volumes-from "${PORTAGE_NAME}" \
+      --volumes-from "${BUILD_NAME}" \
+      --volumes-from "${NAME}" \
+      "${GENTOO_IMAGE}" \
+      emerge --buildpkg --usepkg --onlydeps "${@:3}"
+    docker run -it --rm \
+      --volumes-from "${PORTAGE_NAME}" \
+      --volumes-from "${BUILD_NAME}" \
+      --volumes-from "${NAME}" \
+      "${GENTOO_IMAGE}" \
+      emerge --buildpkg --usepkg --root=/build --root-deps=rdeps "${@:3}"
     ;;
   portage)
     # TODO(kiyoya): Add update command and a command to delete old files.
@@ -86,9 +108,8 @@ case ${1:-} in
       --volumes-from "${PORTAGE_NAME}" \
       --volumes-from "${BUILD_NAME}" \
       --volumes-from "${NAME}" \
-      -v "${ROOT}/bashrc:/bashrc:ro" \
       "${GENTOO_IMAGE}" \
-      /bin/bash --rcfile /bashrc "${@:3}"
+      /bin/bash "${@:3}"
     ;;
   *)
     echo "$0 [ build | clean | create | portage | shell ]"

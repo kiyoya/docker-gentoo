@@ -3,7 +3,7 @@
 
 set -eu
 
-P="bash coreutils iptables openvpn"
+P="baselayout bash coreutils glibc iptables openvpn"
 
 NAME="${NAME:-openvpn}"
 IMAGE="${IMAGE:-kiyoya/openvpn}"
@@ -12,10 +12,7 @@ ROOT="${ROOT:-$(dirname $0)}"
 ENTRYPOINT="${ENTRYPOINT:-${ROOT}/openvpn/docker-entrypoint.sh}"
 
 "${ROOT}"/bootstrap.sh create "${NAME}"
-"${ROOT}"/bootstrap.sh shell "${NAME}" \
-  -ci "emerge_prepare ${P} --quiet"
-"${ROOT}"/bootstrap.sh shell "${NAME}" \
-  -ci "emerge_build ${P} --quiet"
+"${ROOT}"/bootstrap.sh emerge "${NAME}" ${P}
 "${ROOT}"/bootstrap.sh cp "${NAME}" \
   "${ENTRYPOINT}" /build/docker-entrypoint.sh
 "${ROOT}"/bootstrap.sh build "${NAME}" "${IMAGE}" \
