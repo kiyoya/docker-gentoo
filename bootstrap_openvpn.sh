@@ -19,8 +19,8 @@ ENTRYPOINT="${ENTRYPOINT:-${ROOT}/openvpn/docker-entrypoint.sh}"
 "${ROOT}"/bootstrap.sh cp "${NAME}" \
   "${ENTRYPOINT}" /build/docker-entrypoint.sh
 "${ROOT}"/bootstrap.sh build "${NAME}" "${IMAGE}" \
-  -c 'CMD ["/docker-entrypoint.sh"]' \
-  -c 'VOLUME ["/etc/openvpn"]' \
-  -c 'EXPOSE 1194' \
-  -c 'EXPOSE 1194/udp'
+  -c "CMD [/docker-entrypoint.sh]" \
+  -c "VOLUME [/etc/openvpn]" \
+  -c "EXPOSE 1194" \
+  -c "EXPOSE 1194/udp"
 "${ROOT}"/bootstrap.sh clean "${NAME}"

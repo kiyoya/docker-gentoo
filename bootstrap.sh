@@ -38,8 +38,8 @@ case ${1:-} in
     docker run --rm \
       --volumes-from "${NAME}" \
       "${GENTOO_IMAGE}" \
-      tar -cf - -C ${BUILD_ROOT} . | \
-      docker import "${@:4}" - "${IMAGE}"
+      tar -cf - -C ${BUILD_ROOT} . \
+      | docker import "${@:4}" - "${IMAGE}"
     ;;
   cp)
     NAME="${2}"
