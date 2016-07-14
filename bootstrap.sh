@@ -6,8 +6,6 @@ set -eu
 BUILD_IMAGE="${BUILD_IMAGE:-tianon/true}"
 BUILD_NAME="${BUILD_NAME:-portage-build}"
 BUILD_ROOT="${BUILD_ROOT:-/build}"
-DOCKER_IMAGE="${DOCKER_IMAGE:-docker}"
-DOCKER_SOCKET="${DOCKER_SOCKET:-/var/run/docker.sock}"
 GENTOO_IMAGE="${GENTOO_IMAGE:-gentoo/stage3-amd64}"
 PORTAGE_IMAGE="${PORTAGE_IMAGE:-gentoo/portage}"
 PORTAGE_NAME="${PORTAGE_NAME:-portage}"
@@ -30,18 +28,18 @@ case "${MSYSTEM:-}" in
     }
 esac
 
-ROOT="${ROOT:-$(_absolute_path $(dirname $0))}"
 
+ROOT="${ROOT:-$(_absolute_path $(dirname $0))}"
 
 case ${1:-} in
   build)
     NAME="${2}"
     IMAGE="${3}"
-    docker run -it --rm \
-      -v "${DOCKER_SOCKET}:/var/run/docker.sock" \
+    docker run --rm \
       --volumes-from "${NAME}" \
-    docker \
-    sh -c "tar -c -C ${BUILD_ROOT} . | docker import ${@:4} - ${IMAGE}"
+      "${GENTOO_IMAGE}" \
+      tar -cf - -C ${BUILD_ROOT} . | \
+      docker import "${@:4}" - "${IMAGE}"
     ;;
   cp)
     NAME="${2}"
