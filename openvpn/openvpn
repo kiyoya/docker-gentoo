@@ -12,7 +12,6 @@ BOOT="$(dirname $0)"/../bootstrap.sh
 
 PACKAGES="
   app-crypt/easy-rsa
-  app-shells/bash
   net-firewall/iptables
   net-misc/openvpn
   sys-apps/coreutils"

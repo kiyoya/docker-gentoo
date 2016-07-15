@@ -12,6 +12,7 @@ PORTAGE_NAME="${PORTAGE_NAME:-portage}"
 
 # Fundamental packages
 PACKAGES="
+  app-shells/bash
   sys-apps/baselayout
   sys-apps/busybox
   sys-libs/glibc"
