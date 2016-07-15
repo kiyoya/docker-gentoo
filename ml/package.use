@@ -1,0 +1,3 @@
+dev-libs/c-blosc hdf5
+dev-python/numpy lapack
+sci-libs/scipy sparse

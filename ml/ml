@@ -1,0 +1,67 @@
+#!/bin/sh
+
+set -eu
+
+NAME="${NAME:-ml}"
+IMAGE="${IMAGE:-kiyoya/ml}"
+TAG="${TAG:-latest}"
+
+BOOT="$(dirname $0)"/../bootstrap.sh
+
+PACKAGES="
+  =dev-lang/python-2*
+  =dev-lang/python-3*
+  dev-python/matplotlib
+  dev-python/numpy
+  dev-python/pip
+  sci-libs/atlas
+  sci-libs/scikits_image
+  sci-libs/scikits_learn
+  sci-libs/scikits_optimization
+  sci-libs/scikits_timeseries
+  sci-libs/scipy"
+
+
+case "${1}" in
+build)
+  "${BOOT}" create "${NAME}"
+  "${BOOT}" cp "${NAME}" \
+    "$(dirname $0)"/package.keywords /etc/portage/package.keywords/ml
+  "${BOOT}" cp "${NAME}" \
+    "$(dirname $0)"/package.use /etc/portage/package.use/ml
+  "${BOOT}" emerge "${NAME}" --update --deep --newuse ${PACKAGES}
+  "${BOOT}" shell "${NAME}" \
+    -ci 'pip install chainer'
+  "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
+    -c 'CMD ["/bin/sh"]'
+  "${BOOT}" clean "${NAME}"
+  ;;
+down)
+  docker stop "${NAME}"
+  docker rm "${NAME}"
+  ;;
+exec)
+  docker exec -it \
+    --user "$(id -u)":"$(id -g)" \
+    "${NAME}" "${@:2}"
+  ;;
+pull)
+  docker pull "${IMAGE}:${TAG}"
+  ;;
+reload)
+  $0 down
+  $0 up
+  ;;
+up)
+  docker run -d -it \
+    --name "${NAME}" \
+    --log-driver=none \
+    --user "$(id -u)":"$(id -g)" \
+    -v /etc/group:/etc/group:ro \
+    -v /etc/passwd:/etc/passwd:ro \
+    -v "${HOME}":"${HOME}" \
+    "${IMAGE}:${TAG}"
+  ;;
+*)
+  echo "usage: $0 [ build | down | exec | pull | reload | up ]"
+esac
