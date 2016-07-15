@@ -53,6 +53,7 @@ case ${1:-} in
     ;;
   clean)
     NAME="${2}"
+    docker stop "${NAME}"
     docker rm "${NAME}"
     ;;
   create)
