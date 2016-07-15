@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 # @(#) Script to build and maintain gentoo-based docker images.
 
 set -eu
@@ -41,9 +41,7 @@ case ${1:-} in
   build)
     NAME="${2}"
     IMAGE="${3}"
-    docker run --rm \
-      --volumes-from "${NAME}" \
-      "${GENTOO_IMAGE}" \
+    docker exec "${NAME}" \
       tar -cf - -C ${BUILD_ROOT} . \
       | docker import "${@:4}" - "${IMAGE}"
     ;;
@@ -59,25 +57,20 @@ case ${1:-} in
     ;;
   create)
     NAME="${2}"
-    docker create --name "${NAME}" \
-      -v "${BUILD_ROOT}" \
-      "${BUILD_IMAGE}"
-    $0 emerge ${PACKAGES}
+    # --privileged is required to build glibc.
+    docker run -d -it --name "${NAME}" \
+      --privileged \
+      --volumes-from "${PORTAGE_NAME}" \
+      "${GENTOO_IMAGE}" /bin/bash
+    $0 emerge "${NAME}" ${PACKAGES}
     ;;
   emerge)
     NAME="${2}"
-    docker run -it --rm \
-      --volumes-from "${PORTAGE_NAME}" \
-      --volumes-from "${BUILD_NAME}" \
-      --volumes-from "${NAME}" \
-      "${GENTOO_IMAGE}" \
-      emerge --buildpkg --usepkg --onlydeps "${@:3}"
-    docker run -it --rm \
-      --volumes-from "${PORTAGE_NAME}" \
-      --volumes-from "${BUILD_NAME}" \
-      --volumes-from "${NAME}" \
-      "${GENTOO_IMAGE}" \
-      emerge --buildpkg --usepkg --root=/build --root-deps=rdeps "${@:3}"
+    docker exec -it "${NAME}" \
+      emerge --buildpkg --usepkg --onlydeps --quiet "${@:3}"
+    docker exec -it "${NAME}" \
+      emerge --buildpkg --usepkg --root="${BUILD_ROOT}" --root-deps=rdeps \
+      --quiet "${@:3}"
     ;;
   portage)
     # TODO(kiyoya): Add update command and a command to delete old files.
@@ -104,11 +97,7 @@ case ${1:-} in
     ;;
   shell)
     NAME="${2}"
-    docker run -it --rm \
-      --volumes-from "${PORTAGE_NAME}" \
-      --volumes-from "${BUILD_NAME}" \
-      --volumes-from "${NAME}" \
-      "${GENTOO_IMAGE}" \
+    docker exec -it "${NAME}" \
       /bin/bash "${@:3}"
     ;;
   *)
