@@ -1,11 +1,35 @@
 #!/bin/sh
+# @(#) Script to build and maintain gentoo-based openvpn docker images.
 
 set -eu
 
-DATADIR="${DATADIR:-/var/data/kiyoya}"
-IMAGE="${IMAGE:-kiyoya/mol}"
-NAME="${NAME:-kiyoya}"
+DATADIR="${DATADIR:-/var/data/openvpn}"
+IMAGE="${IMAGE:-kiyoya/openvpn}"
+NAME="${NAME:-openvpn}"
 TAG="${TAG:-latest}"
+
+BOOT="$(dirname $0)"/../bootstrap.sh
+
+PACKAGES="
+  app-crypt/easy-rsa
+  app-shells/bash
+  net-firewall/iptables
+  net-misc/openvpn
+  sys-apps/coreutils"
+
+
+function job_build() {
+  "${BOOT}" create "${NAME}"
+  "${BOOT}" emerge "${NAME}" ${PACKAGES}
+  "${BOOT}" cp "${NAME}" \
+    "$(dirname $0)"/docker-entrypoint.sh /build/docker-entrypoint.sh
+  "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
+    -c 'CMD ["/docker-entrypoint.sh"]' \
+    -c 'VOLUME ["/etc/openvpn"]' \
+    -c 'EXPOSE 1194' \
+    -c 'EXPOSE 1194/udp'
+  "${BOOT}" clean "${NAME}"
+}
 
 function job_down() {
   sudo docker stop "${NAME}"
@@ -29,6 +53,9 @@ function job_up() {
 }
 
 case "${1}" in
+build)
+  job_build
+  ;;
 down)
   job_down
   ;;
@@ -43,5 +70,5 @@ up)
   job_up
   ;;
 *)
-  echo "usage: $0 [ down | pull | reload | up ]"
+  echo "usage: $0 [ build | down | pull | reload | up ]"
 esac

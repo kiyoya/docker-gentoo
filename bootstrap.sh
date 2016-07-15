@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 # @(#) Script to build and maintain gentoo-based docker images.
 
 set -eu

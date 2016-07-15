@@ -1,4 +1,5 @@
 #!/bin/sh
+# @(#) Script to build and maintain gentoo-based murmur docker images.
 
 set -eu
 
@@ -6,6 +7,25 @@ DATADIR="${DATADIR:-/var/data/murmur}"
 IMAGE="${IMAGE:-kiyoya/murmur}"
 NAME="${NAME:-murmur}"
 TAG="${TAG:-latest}"
+
+BOOT="$(dirname $0)"/../bootstrap.sh
+
+PACKAGES="media-sound/murmur"
+
+
+function job_build() {
+  "${BOOT}" create "${NAME}"
+  "${BOOT}" cp "${NAME}" \
+    "$(dirname $0)"/package.use /etc/portage/package.use/murmur
+  "${BOOT}" emerge "${NAME}" ${PACKAGES}
+  "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
+    -c 'ENTRYPOINT ["/usr/bin/murmurd"]' \
+    -c 'CMD ["-fg", "-ini", "/etc/murmur/murmur.ini"]' \
+    -c 'ENV HOME /var/lib/murmur' \
+    -c 'EXPOSE 64738' \
+    -c 'EXPOSE 64738/udp'
+  "${BOOT}" clean "${NAME}"
+}
 
 function job_down() {
   docker stop "${NAME}"
@@ -28,6 +48,9 @@ function job_up() {
 }
 
 case "${1}" in
+build)
+  job_build
+  ;;
 down)
   job_down
   ;;
@@ -42,5 +65,5 @@ up)
   job_up
   ;;
 *)
-  echo "usage: $0 [ down | pull | reload | up ]"
+  echo "usage: $0 [ build | down | pull | reload | up ]"
 esac

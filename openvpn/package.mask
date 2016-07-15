@@ -1,2 +1,0 @@
-=net-misc/openvpn-2.3.6*
-=net-misc/openvpn-2.3.5*
