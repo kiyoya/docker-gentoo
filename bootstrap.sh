@@ -50,7 +50,7 @@ case ${1:-} in
     NAME="${2}"
     SOURCE="${3}"
     DEST="${4}"
-    docker cp "${SOURCE}" "${NAME}:${DEST}"
+    docker cp "${SOURCE}" "${NAME}":"${DEST}"
     ;;
   clean)
     NAME="${2}"
@@ -64,6 +64,7 @@ case ${1:-} in
       --privileged \
       --volumes-from "${PORTAGE_NAME}" \
       "${GENTOO_IMAGE}" /bin/bash
+    $0 shell "${NAME}" -c 'mkdir -p /etc/portage/package.{keywords,mask,use}'
     $0 emerge "${NAME}" ${PACKAGES}
     ;;
   emerge)

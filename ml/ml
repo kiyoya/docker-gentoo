@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+# @(#) Script to maintain gentoo-based docker image for machine learning.
 
 set -eu
 
@@ -12,14 +13,14 @@ PACKAGES="
   =dev-lang/python-2*
   =dev-lang/python-3*
   dev-python/matplotlib
+  dev-python/nltk
   dev-python/numpy
-  dev-python/pip
-  sci-libs/atlas
   sci-libs/scikits_image
   sci-libs/scikits_learn
   sci-libs/scikits_optimization
   sci-libs/scikits_timeseries
   sci-libs/scipy"
+# dev-python/pip
 
 
 case "${1}" in
@@ -30,10 +31,11 @@ build)
   "${BOOT}" cp "${NAME}" \
     "$(dirname $0)"/package.use /etc/portage/package.use/ml
   "${BOOT}" emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  "${BOOT}" shell "${NAME}" \
-    -ci 'pip install chainer'
+  # TODO(kiyoya): It does not work. Need to chroot to /build.
+  # "${BOOT}" shell "${NAME}" \
+  #   -ci 'pip install chainer'
   "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
-    -c 'CMD ["/bin/sh"]'
+    -c "CMD ['/bin/sh']"
   "${BOOT}" clean "${NAME}"
   ;;
 down)
