@@ -1,5 +1,5 @@
-#!/bin/sh
-# @(#) Script to build and maintain gentoo-based openvpn docker images.
+#!/bin/bash
+# @(#) Script to maintain gentoo-based openvpn docker image.
 
 set -eu
 
@@ -23,10 +23,10 @@ function job_build() {
   "${BOOT}" cp "${NAME}" \
     "$(dirname $0)"/docker-entrypoint.sh /build/docker-entrypoint.sh
   "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
-    -c 'CMD ["/docker-entrypoint.sh"]' \
-    -c 'VOLUME ["/etc/openvpn"]' \
-    -c 'EXPOSE 1194' \
-    -c 'EXPOSE 1194/udp'
+    -c "CMD ['/docker-entrypoint.sh']" \
+    -c "VOLUME ['/etc/openvpn']" \
+    -c "EXPOSE 1194" \
+    -c "EXPOSE 1194/udp"
   "${BOOT}" clean "${NAME}"
 }
 
