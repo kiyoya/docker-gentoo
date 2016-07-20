@@ -37,7 +37,7 @@ build)
   # bootstrap_shell "${NAME}" \
   #   -ci 'pip install chainer'
   bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
-    -c "CMD ['/bin/sh']"
+    -c "CMD /bin/bash"
   bootstrap_clean "${NAME}"
   ;;
 down)

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 # @(#) Script to maintain gentoo-based docker image for openvpn.
 
 ROOT="${ROOT:-$(dirname $0)}"
@@ -24,8 +24,8 @@ build)
   docker cp \
     "${ROOT}"/docker-entrypoint.sh "${NAME}":/build/docker-entrypoint.sh
   bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
-    -c "CMD ['/docker-entrypoint.sh']" \
-    -c "VOLUME ['/etc/openvpn']" \
+    -c "CMD /docker-entrypoint.sh" \
+    -c "VOLUME /etc/openvpn" \
     -c "EXPOSE 1194" \
     -c "EXPOSE 1194/udp"
   bootstrap_clean "${NAME}"
