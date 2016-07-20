@@ -1,13 +1,12 @@
 #!/bin/bash
 # @(#) Script to maintain gentoo-based docker image for machine learning.
 
-set -eu
+ROOT="${ROOT:-$(dirname $0)}"
+source "${ROOT}"/../lib/common.sh
 
 NAME="${NAME:-ml}"
 IMAGE="${IMAGE:-kiyoya/ml}"
-TAG="${TAG:-latest}"
-
-BOOT="$(dirname $0)"/../bootstrap.sh
+TAG="${TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="
   =dev-lang/python-2*
@@ -15,6 +14,7 @@ PACKAGES="
   dev-python/matplotlib
   dev-python/nltk
   dev-python/numpy
+  sci-libs/atlas
   sci-libs/scikits_image
   sci-libs/scikits_learn
   sci-libs/scikits_optimization
@@ -22,21 +22,21 @@ PACKAGES="
   sci-libs/scipy"
 # dev-python/pip
 
-
 case "${1}" in
 build)
-  "${BOOT}" create "${NAME}"
-  "${BOOT}" cp "${NAME}" \
-    "$(dirname $0)"/package.keywords /etc/portage/package.keywords/ml
-  "${BOOT}" cp "${NAME}" \
-    "$(dirname $0)"/package.use /etc/portage/package.use/ml
-  "${BOOT}" emerge "${NAME}" --update --deep --newuse ${PACKAGES}
+  bootstrap_create "${NAME}"
+  bootstrap_shell "${NAME}" \
+    -c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
+  docker cp \
+    "${ROOT}"/package.keywords "${NAME}":/etc/portage/package.keywords/ml
+  docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/ml
+  bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
   # TODO(kiyoya): It does not work. Need to chroot to /build.
-  # "${BOOT}" shell "${NAME}" \
+  # bootstrap_shell "${NAME}" \
   #   -ci 'pip install chainer'
-  "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
+  bootstrap_build "${NAME}" "${IMAGE}:${TAG}" \
     -c "CMD ['/bin/sh']"
-  "${BOOT}" clean "${NAME}"
+  bootstrap_clean "${NAME}"
   ;;
 down)
   docker stop "${NAME}"
@@ -59,9 +59,7 @@ up)
     --name "${NAME}" \
     --log-driver=none \
     --user "$(id -u)":"$(id -g)" \
-    -v /etc/group:/etc/group:ro \
-    -v /etc/passwd:/etc/passwd:ro \
-    -v "${HOME}":"${HOME}" \
+    -v "$(realpath ${HOME})":"${HOME}" \
     "${IMAGE}:${TAG}"
   ;;
 *)

@@ -1,68 +1,49 @@
-#!/bin/sh
-# @(#) Script to build and maintain gentoo-based murmur docker images.
+#!/bin/bash
+# @(#) Script to maintain gentoo-based docker image for murmur.
 
-set -eu
+ROOT="${ROOT:-$(dirname $0)}"
+source "${ROOT}"/../lib/common.sh
 
 DATADIR="${DATADIR:-/var/data/murmur}"
 IMAGE="${IMAGE:-kiyoya/murmur}"
 NAME="${NAME:-murmur}"
-TAG="${TAG:-latest}"
-
-BOOT="$(dirname $0)"/../bootstrap.sh
+TAG="${TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="media-sound/murmur"
 
-
-function job_build() {
-  "${BOOT}" create "${NAME}"
-  "${BOOT}" cp "${NAME}" \
-    "$(dirname $0)"/package.use /etc/portage/package.use/murmur
-  "${BOOT}" emerge "${NAME}" ${PACKAGES}
-  "${BOOT}" build "${NAME}" "${IMAGE}:${TAG}" \
+case "${1}" in
+build)
+  bootstrap_create "${NAME}"
+  docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/murmur
+  bootstrap_emerge "${NAME}" ${PACKAGES}
+  bootstrap_build "${NAME}" "${IMAGE}:${TAG}" \
     -c 'ENTRYPOINT ["/usr/bin/murmurd"]' \
     -c 'CMD ["-fg", "-ini", "/etc/murmur/murmur.ini"]' \
     -c 'ENV HOME /var/lib/murmur' \
     -c 'EXPOSE 64738' \
     -c 'EXPOSE 64738/udp'
-  "${BOOT}" clean "${NAME}"
-}
-
-function job_down() {
+  bootstrap_clean "${NAME}"
+  ;;
+down)
   docker stop "${NAME}"
   docker rm "${NAME}"
-}
-
-function job_pull() {
+  ;;
+pull)
   docker pull "${IMAGE}:${TAG}"
-}
-
-function job_up() {
+  ;;
+reload)
+  $0 down
+  $0 up
+  ;;
+up)
   docker run -d \
     -p 64738:64738 \
     -p 64738:64738/udp \
     --name "${NAME}" \
-    -v "${DATADIR}/murmur.ini:/etc/murmur/murmur.ini:ro" \
-    -v "${DATADIR}/murmur.sqlite:/var/lib/murmur/murmur.sqlite" \
+    -v "${DATADIR}"/murmur.ini:/etc/murmur/murmur.ini:ro \
+    -v "${DATADIR}"/murmur.sqlite:/var/lib/murmur/murmur.sqlite \
     --restart always \
     "${IMAGE}:${TAG}"
-}
-
-case "${1}" in
-build)
-  job_build
-  ;;
-down)
-  job_down
-  ;;
-pull)
-  job_pull
-  ;;
-reload)
-  job_down
-  job_up
-  ;;
-up)
-  job_up
   ;;
 *)
   echo "usage: $0 [ build | down | pull | reload | up ]"
