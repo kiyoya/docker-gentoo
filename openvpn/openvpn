@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 # @(#) Script to maintain gentoo-based docker image for openvpn.
 
 ROOT="${ROOT:-$(dirname $0)}"
