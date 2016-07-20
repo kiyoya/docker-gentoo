@@ -6,7 +6,7 @@ source "${ROOT}"/../lib/common.sh
 
 NAME="${NAME:-ml}"
 IMAGE="${IMAGE:-kiyoya/ml}"
-TAG="${TAG:-$(date +%Y%m%d)}"
+TAG="${TAG:-latest}"
 
 PACKAGES="
   =dev-lang/python-2*
@@ -24,6 +24,8 @@ PACKAGES="
 
 case "${1}" in
 build)
+  BUILD_TAG="${2:-$(date +%Y%m%d)}"
+
   bootstrap_create "${NAME}"
   bootstrap_shell "${NAME}" \
     -c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
@@ -34,7 +36,7 @@ build)
   # TODO(kiyoya): It does not work. Need to chroot to /build.
   # bootstrap_shell "${NAME}" \
   #   -ci 'pip install chainer'
-  bootstrap_build "${NAME}" "${IMAGE}:${TAG}" \
+  bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
     -c "CMD ['/bin/sh']"
   bootstrap_clean "${NAME}"
   ;;

@@ -7,7 +7,7 @@ source "${ROOT}"/../lib/common.sh
 DATADIR="${DATADIR:-/var/data/openvpn}"
 IMAGE="${IMAGE:-kiyoya/openvpn}"
 NAME="${NAME:-openvpn}"
-TAG="${TAG:-$(date +%Y%m%d)}"
+TAG="${TAG:-latest}"
 
 PACKAGES="
   app-crypt/easy-rsa
@@ -17,11 +17,13 @@ PACKAGES="
 
 case "${1}" in
 build)
+  BUILD_TAG="${2:-$(date +%Y%m%d)}"
+
   bootstrap_create "${NAME}"
   bootstrap_emerge "${NAME}" ${PACKAGES}
   docker cp \
     "${ROOT}"/docker-entrypoint.sh "${NAME}":/build/docker-entrypoint.sh
-  bootstrap_build "${NAME}" "${IMAGE}:${TAG}" \
+  bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
     -c "CMD ['/docker-entrypoint.sh']" \
     -c "VOLUME ['/etc/openvpn']" \
     -c "EXPOSE 1194" \
