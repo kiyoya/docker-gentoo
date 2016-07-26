@@ -38,6 +38,7 @@ function bootstrap_create() {
   # --privileged is required to build glibc.
   docker run -d -it --name "${NAME}" \
     --privileged \
+    --volumes-from "${BUILD_NAME}" \
     --volumes-from "${PORTAGE_NAME}" \
     "${GENTOO_IMAGE}" /bin/bash
   bootstrap_shell "${NAME}" \
