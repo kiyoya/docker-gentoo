@@ -7,6 +7,7 @@ source "${ROOT}"/../lib/common.sh
 NAME="${NAME:-ml}"
 IMAGE="${IMAGE:-kiyoya/ml}"
 TAG="${TAG:-latest}"
+BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="
   =dev-lang/python-2*
@@ -22,10 +23,9 @@ PACKAGES="
   sci-libs/scipy"
 # dev-python/pip
 
+
 case "${1}" in
 build)
-  BUILD_TAG="${2:-$(date +%Y%m%d)}"
-
   bootstrap_create "${NAME}"
   bootstrap_shell "${NAME}" \
     -c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
@@ -49,6 +49,9 @@ exec)
     --user "$(id -u)":"$(id -g)" \
     "${NAME}" "${@:2}"
   ;;
+promote)
+  docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
+  ;;
 pull)
   docker pull "${IMAGE}:${TAG}"
   ;;
@@ -65,5 +68,5 @@ up)
     "${IMAGE}:${TAG}"
   ;;
 *)
-  echo "usage: $0 [ build | down | exec | pull | reload | up ]"
+  echo "usage: $0 [ build | down | exec | promote | pull | reload | up ]"
 esac

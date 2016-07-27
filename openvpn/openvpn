@@ -8,6 +8,7 @@ DATADIR="${DATADIR:-/var/data/openvpn}"
 IMAGE="${IMAGE:-kiyoya/openvpn}"
 NAME="${NAME:-openvpn}"
 TAG="${TAG:-latest}"
+BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="
   app-crypt/easy-rsa
@@ -15,10 +16,9 @@ PACKAGES="
   net-misc/openvpn
   sys-apps/coreutils"
 
+
 case "${1}" in
 build)
-  BUILD_TAG="${2:-$(date +%Y%m%d)}"
-
   bootstrap_create "${NAME}"
   bootstrap_emerge "${NAME}" ${PACKAGES}
   docker cp \
@@ -33,6 +33,9 @@ build)
 down)
   sudo docker stop "${NAME}"
   sudo docker rm "${NAME}"
+  ;;
+promote)
+  docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
   ;;
 pull)
   docker pull "${IMAGE}:${TAG}"
@@ -52,5 +55,5 @@ up)
     "${IMAGE}:${TAG}"
   ;;
 *)
-  echo "usage: $0 [ build | down | pull | reload | up ]"
+  echo "usage: $0 [ build | down | promote | pull | reload | up ]"
 esac

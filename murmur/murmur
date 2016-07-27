@@ -8,13 +8,13 @@ DATADIR="${DATADIR:-/var/data/murmur}"
 IMAGE="${IMAGE:-kiyoya/murmur}"
 NAME="${NAME:-murmur}"
 TAG="${TAG:-latest}"
+BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="media-sound/murmur"
 
+
 case "${1}" in
 build)
-  BUILD_TAG="${2:-$(date +%Y%m%d)}"
-
   bootstrap_create "${NAME}"
   docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/murmur
   bootstrap_emerge "${NAME}" ${PACKAGES}
@@ -29,6 +29,9 @@ build)
 down)
   docker stop "${NAME}"
   docker rm "${NAME}"
+  ;;
+promote)
+  docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
   ;;
 pull)
   docker pull "${IMAGE}:${TAG}"
@@ -48,5 +51,5 @@ up)
     "${IMAGE}:${TAG}"
   ;;
 *)
-  echo "usage: $0 [ build | down | pull | reload | up ]"
+  echo "usage: $0 [ build | down | promote | pull | reload | up ]"
 esac
