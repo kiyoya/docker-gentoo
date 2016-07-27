@@ -18,6 +18,8 @@ BASE_PACKAGES="
 
 DOCKER_OPTS="-i"
 
+LOG_INFO="\033[1;31m"
+
 case "${MSYSTEM:-}" in
   MINGW*)
     DOCKER="$(command -v docker)"
@@ -69,4 +71,13 @@ function bootstrap_emerge() {
 function bootstrap_shell() {
   NAME="${1}"
   docker exec ${DOCKER_OPTS} "${NAME}" /bin/bash "${@:2}"
+}
+
+function die() {
+  printf "${LOG_INFO}$@\033[0m\n" >&2
+  exit 1
+}
+
+function log() {
+  printf "${LOG_INFO}$@\033[0m\n"
 }
