@@ -16,12 +16,17 @@ BASE_PACKAGES="
   sys-apps/busybox
   sys-libs/glibc"
 
+DOCKER_OPTS="-i"
+
 case "${MSYSTEM:-}" in
   MINGW*)
     DOCKER="$(command -v docker)"
     function docker() {
       MSYS2_ARG_CONV_EXCL='*' "${DOCKER}" "$@"
     }
+    ;;
+  *)
+    DOCKER_OPTS="${DOCKER_OPTS} -t"
     ;;
 esac
 
@@ -36,7 +41,7 @@ function bootstrap_build() {
 function bootstrap_create() {
   NAME="${1}"
   # --privileged is required to build glibc.
-  docker run -d -it --name "${NAME}" \
+  docker run ${DOCKER_OPTS} -d --name "${NAME}" \
     --privileged \
     --volumes-from "${BUILD_NAME}" \
     --volumes-from "${PORTAGE_NAME}" \
@@ -54,14 +59,14 @@ function bootstrap_clean() {
 
 function bootstrap_emerge() {
   NAME="${1}"
-  docker exec -it "${NAME}" \
+  docker exec ${DOCKER_OPTS} "${NAME}" \
     emerge --buildpkg --usepkg --onlydeps --quiet "${@:2}"
-  docker exec -it "${NAME}" \
+  docker exec ${DOCKER_OPTS} "${NAME}" \
     emerge --buildpkg --usepkg --root="${BUILD_ROOT}" --root-deps=rdeps \
     --quiet "${@:2}"
 }
 
 function bootstrap_shell() {
   NAME="${1}"
-  docker exec -it "${NAME}" /bin/bash "${@:2}"
+  docker exec ${DOCKER_OPTS} "${NAME}" /bin/bash "${@:2}"
 }
