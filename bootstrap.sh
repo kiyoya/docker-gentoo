@@ -19,11 +19,22 @@ case ${1:-} in
     bootstrap_emerge "${@:2}"
     ;;
   portage)
-    # TODO(kiyoya): Add update command and a command to delete old files.
+    # TODO(kiyoya): Add a command to update the portage image.
     case ${2:-} in
       down)
         docker rm "${BUILD_NAME}"
         docker rm "${PORTAGE_NAME}"
+        ;;
+      eclean)
+        DURATION="${3:-3w}"
+        docker run ${DOCKER_OPTS} --rm \
+          --volumes-from "${BUILD_NAME}" \
+          --volumes-from "${PORTAGE_NAME}" \
+          "${GENTOO_IMAGE}" /bin/bash -x <<EOM
+          emerge --quiet --buildpkg --usepkg app-portage/gentoolkit
+          eclean -dq -t ${DURATION} distfiles
+          eclean -dq -t ${DURATION} packages
+EOM
         ;;
       pull)
         docker pull "${BUILD_IMAGE}"
@@ -37,7 +48,7 @@ case ${1:-} in
           "${BUILD_IMAGE}"
         ;;
       *)
-        echo "$0 portage [ down | pull | up ]"
+        echo "$0 portage [ down | eclean | pull | up ]"
         ;;
     esac
     ;;
