@@ -40,6 +40,13 @@ EOM
         docker pull "${BUILD_IMAGE}"
         docker pull "${PORTAGE_IMAGE}"
         ;;
+      shell)
+        # NOTE: It requires -t option.
+        docker run -it --rm \
+          --volumes-from "${BUILD_NAME}" \
+          --volumes-from "${PORTAGE_NAME}" \
+          "${GENTOO_IMAGE}" /bin/bash
+        ;;
       up)
         docker create --name "${PORTAGE_NAME}" "${PORTAGE_IMAGE}"
         docker create --name "${BUILD_NAME}" \
@@ -48,7 +55,7 @@ EOM
           "${BUILD_IMAGE}"
         ;;
       *)
-        echo "$0 portage [ down | eclean | pull | up ]"
+        echo "$0 portage [ down | eclean | pull | shell | up ]"
         ;;
     esac
     ;;
