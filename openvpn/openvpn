@@ -55,6 +55,7 @@ up)
     --name "${NAME}" \
     -v "${DATADIR}":/etc/openvpn:ro \
     --restart always \
+    --log-driver=journald \
     "${IMAGE}:${TAG}"
   ;;
 *)
