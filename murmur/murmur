@@ -50,7 +50,7 @@ up)
     -v "${DATADIR}"/murmur.sqlite:/var/lib/murmur/murmur.sqlite \
     --restart always \
     --log-driver=journald \
-    "${IMAGE}:${TAG}" /usr/bin/murmurd -fg -init /etc/murmur/murmur.ini
+    "${IMAGE}:${TAG}" /usr/bin/murmurd -fg -ini /etc/murmur/murmur.ini
   ;;
 *)
   echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"
