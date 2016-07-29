@@ -24,7 +24,6 @@ build)
   docker cp \
     "${ROOT}"/docker-entrypoint.sh "${NAME}":/build/docker-entrypoint.sh
   bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
-    -c "CMD /docker-entrypoint.sh" \
     -c "VOLUME /etc/openvpn" \
     -c "EXPOSE 1194" \
     -c "EXPOSE 1194/udp"
@@ -56,7 +55,7 @@ up)
     -v "${DATADIR}":/etc/openvpn:ro \
     --restart always \
     --log-driver=journald \
-    "${IMAGE}:${TAG}"
+    "${IMAGE}:${TAG}" /docker-entrypoint.sh
   ;;
 *)
   echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"

@@ -36,8 +36,7 @@ build)
   # TODO(kiyoya): It does not work. Need to chroot to /build.
   # bootstrap_shell "${NAME}" \
   #   -ci 'pip install chainer'
-  bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
-    -c "CMD /bin/bash"
+  bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}"
   bootstrap_clean "${NAME}"
   ;;
 down)
@@ -65,7 +64,7 @@ up)
     --log-driver=none \
     --user "$(id -u)":"$(id -g)" \
     -v "$(realpath ${HOME})":"${HOME}" \
-    "${IMAGE}:${TAG}"
+    "${IMAGE}:${TAG}" /bin/bash
   ;;
 *)
   echo "usage: $0 [ build | down | exec | promote | pull | reload | up ]"
