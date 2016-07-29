@@ -4,7 +4,6 @@ set -eu
 
 BUILD_IMAGE="${BUILD_IMAGE:-tianon/true}"
 BUILD_NAME="${BUILD_NAME:-portage-build}"
-BUILD_ROOT="${BUILD_ROOT:-/build}"
 GENTOO_IMAGE="${GENTOO_IMAGE:-gentoo/stage3-amd64}"
 PORTAGE_IMAGE="${PORTAGE_IMAGE:-gentoo/portage}"
 PORTAGE_NAME="${PORTAGE_NAME:-portage}"
@@ -36,7 +35,7 @@ function bootstrap_build() {
   NAME="${1}"
   IMAGE="${2}"
   docker exec "${NAME}" \
-    tar -cf - -C ${BUILD_ROOT} . \
+    tar -cf - -C /build . \
     | docker import "${@:3}" - "${IMAGE}"
 }
 
@@ -51,6 +50,10 @@ function bootstrap_create() {
   bootstrap_shell "${NAME}" \
     -c 'mkdir -p /etc/portage/package.{keywords,mask,use}'
   bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
+  bootstrap_shell "${NAME}" \
+    -c 'cp `gcc-config -L | cut -d : -f 1`/lib*.so* /build/usr/lib64'
+  bootstrap_shell "${NAME}" \
+    -c 'cp `gcc-config -L | cut -d : -f 2`/lib*.so* /build/usr/lib32'
 }
 
 function bootstrap_clean() {
@@ -64,7 +67,7 @@ function bootstrap_emerge() {
   docker exec ${DOCKER_OPTS} "${NAME}" \
     emerge --buildpkg --usepkg --onlydeps --quiet "${@:2}"
   docker exec ${DOCKER_OPTS} "${NAME}" \
-    emerge --buildpkg --usepkg --root="${BUILD_ROOT}" --root-deps=rdeps \
+    emerge --buildpkg --usepkg --root=/build --root-deps=rdeps \
     --quiet "${@:2}"
 }
 
