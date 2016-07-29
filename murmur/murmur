@@ -31,7 +31,7 @@ down)
   docker rm "${NAME}"
   ;;
 logs)
-  sudo journalctl CONTAINER_NAME="${NAME}"
+  sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
   ;;
 promote)
   docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
