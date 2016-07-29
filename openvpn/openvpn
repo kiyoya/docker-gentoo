@@ -34,6 +34,9 @@ down)
   sudo docker stop "${NAME}"
   sudo docker rm "${NAME}"
   ;;
+logs)
+  sudo journalctl CONTAINER_NAME="${NAME}"
+  ;;
 promote)
   docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
   ;;
@@ -55,5 +58,5 @@ up)
     "${IMAGE}:${TAG}"
   ;;
 *)
-  echo "usage: $0 [ build | down | promote | pull | reload | up ]"
+  echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"
 esac

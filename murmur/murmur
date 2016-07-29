@@ -30,6 +30,9 @@ down)
   docker stop "${NAME}"
   docker rm "${NAME}"
   ;;
+logs)
+  sudo journalctl CONTAINER_NAME="${NAME}"
+  ;;
 promote)
   docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
   ;;
@@ -48,8 +51,9 @@ up)
     -v "${DATADIR}"/murmur.ini:/etc/murmur/murmur.ini:ro \
     -v "${DATADIR}"/murmur.sqlite:/var/lib/murmur/murmur.sqlite \
     --restart always \
+    --log-driver=journald \
     "${IMAGE}:${TAG}"
   ;;
 *)
-  echo "usage: $0 [ build | down | promote | pull | reload | up ]"
+  echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"
 esac
