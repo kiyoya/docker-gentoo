@@ -9,9 +9,6 @@ case ${1:-} in
   build)
     bootstrap_build "${@:2}"
     ;;
-  clean)
-    bootstrap_clean "${@:2}"
-    ;;
   create)
     bootstrap_create "${@:2}"
     ;;
@@ -63,6 +60,6 @@ EOM
     bootstrap_shell "${@:2}"
     ;;
   *)
-    echo "$0 [ build | clean | create | emerge | portage | shell ]"
+    echo "$0 [ build | create | emerge | portage | shell ]"
     ;;
 esac

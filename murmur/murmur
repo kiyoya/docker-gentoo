@@ -22,7 +22,6 @@ build)
     -c "ENV HOME /var/lib/murmur" \
     -c "EXPOSE 64738" \
     -c "EXPOSE 64738/udp"
-  bootstrap_clean "${NAME}"
   ;;
 down)
   docker stop "${NAME}"

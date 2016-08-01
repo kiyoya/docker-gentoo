@@ -34,9 +34,13 @@ esac
 function bootstrap_build() {
   NAME="${1}"
   IMAGE="${2}"
+  docker exec "${NAME}" umount -l '/build/dev{/shm,/pts,}'
+  docker exec "${NAME}" umount /build{/sys,/proc,}
   docker exec "${NAME}" \
     tar -cf - -C /build . \
     | docker import "${@:3}" - "${IMAGE}"
+  docker stop "${NAME}"
+  docker rm "${NAME}"
 }
 
 function bootstrap_create() {
@@ -54,12 +58,11 @@ function bootstrap_create() {
     -c 'cp `gcc-config -L | cut -d : -f 1`/lib*.so* /build/usr/lib64'
   bootstrap_shell "${NAME}" \
     -c 'cp `gcc-config -L | cut -d : -f 2`/lib*.so* /build/usr/lib32'
-}
-
-function bootstrap_clean() {
-  NAME="${1}"
-  docker stop "${NAME}"
-  docker rm "${NAME}"
+  docker exec "${NAME}" mount -t proc proc /build/proc
+  docker exec "${NAME}" mount --rbind /sys /build/sys
+  docker exec "${NAME}" mount --make-rslave /sys /build/sys
+  docker exec "${NAME}" mount --rbind /dev /build/dev
+  docker exec "${NAME}" mount --make-rslave /dev /build/dev
 }
 
 function bootstrap_emerge() {
@@ -74,6 +77,11 @@ function bootstrap_emerge() {
 function bootstrap_shell() {
   NAME="${1}"
   docker exec ${DOCKER_OPTS} "${NAME}" /bin/bash "${@:2}"
+}
+
+function bootstrap_shell_chroot() {
+  NAME="${1}"
+  docker exec ${DOCKER_OPTS} "${NAME}" chroot /build /bin/bash "${@:2}"
 }
 
 function die() {

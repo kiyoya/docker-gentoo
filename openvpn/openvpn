@@ -27,7 +27,6 @@ build)
     -c "VOLUME /etc/openvpn" \
     -c "EXPOSE 1194" \
     -c "EXPOSE 1194/udp"
-  bootstrap_clean "${NAME}"
   ;;
 down)
   sudo docker stop "${NAME}"

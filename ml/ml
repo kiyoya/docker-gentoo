@@ -33,11 +33,12 @@ build)
     "${ROOT}"/package.keywords "${NAME}":/etc/portage/package.keywords/ml
   docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/ml
   bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  # TODO(kiyoya): It does not work. Need to chroot to /build.
-  # bootstrap_shell "${NAME}" \
-  #   -ci 'pip install chainer'
+  bootstrap_shell_chroot -x <<EOM
+  env-update
+  source /etc/profile
+  pip install chainter
+EOM
   bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}"
-  bootstrap_clean "${NAME}"
   ;;
 down)
   docker stop "${NAME}"
