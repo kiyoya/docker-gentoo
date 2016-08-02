@@ -34,8 +34,8 @@ esac
 function bootstrap_build() {
   NAME="${1}"
   IMAGE="${2}"
-  docker exec "${NAME}" umount -l '/build/dev{/shm,/pts,}'
-  docker exec "${NAME}" umount /build{/sys,/proc,}
+  docker exec ${DOCKER_OPTS} "${NAME}" umount -l '/build/dev{/shm,/pts,}'
+  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount /build{/sys,/proc,}'
   docker exec "${NAME}" \
     tar -cf - -C /build . \
     | docker import "${@:3}" - "${IMAGE}"
@@ -58,11 +58,10 @@ function bootstrap_create() {
     -c 'cp `gcc-config -L | cut -d : -f 1`/lib*.so* /build/usr/lib64'
   bootstrap_shell "${NAME}" \
     -c 'cp `gcc-config -L | cut -d : -f 2`/lib*.so* /build/usr/lib32'
-  docker exec "${NAME}" mount -t proc proc /build/proc
-  docker exec "${NAME}" mount --rbind /sys /build/sys
-  docker exec "${NAME}" mount --make-rslave /sys /build/sys
-  docker exec "${NAME}" mount --rbind /dev /build/dev
-  docker exec "${NAME}" mount --make-rslave /dev /build/dev
+  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'mkdir -p /build{/dev,/proc,/sys}'
+  docker exec ${DOCKER_OPTS} "${NAME}" mount -t proc proc /build/proc
+  docker exec ${DOCKER_OPTS} "${NAME}" mount --rbind /sys /build/sys
+  docker exec ${DOCKER_OPTS} "${NAME}" mount --rbind /dev /build/dev
 }
 
 function bootstrap_emerge() {
