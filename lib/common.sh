@@ -40,8 +40,11 @@ function bootstrap_build() {
     umount /build/proc
 EOM
   # Copies runtime libraries from sys-devel/gcc if not installed.
-  if [[ docker exec ${DOCKER_OPTS} "${NAME}" 'test' -d /build/etc/env.d/gcc ]]
-  then
+  set +e
+  docker exec ${DOCKER_OPTS} "${NAME}" 'test' -d /build/etc/env.d/gcc
+  HAS_GCC=$?
+  set -e
+  if [ ${HAS_GCC} -ne 0 ]; then
     GCC_LIBS=$(docker exec ${DOCKER_OPTS} "${NAME}" gcc-config -L)
     GCC_LIBS64=$(echo "${GCC_LIBS}" | cut -d : -f 1)
     GCC_LIBS32=$(echo "${GCC_LIBS}" | cut -d : -f 2)
@@ -51,6 +54,7 @@ EOM
       mkdir -p /build${GCC_LIBS64}
       cp -P ${GCC_LIBS32}/lib*.so* /build${GCC_LIBS32}
       cp -P ${GCC_LIBS64}/lib*.so* /build${GCC_LIBS64}
+      env-update
 EOM
   fi
   docker exec "${NAME}" \
