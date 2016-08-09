@@ -34,9 +34,25 @@ esac
 function bootstrap_build() {
   NAME="${1}"
   IMAGE="${2}"
-  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount -l /build/dev{/shm,/pts,}'
-  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount -l /build/sys'
-  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount /build/proc'
+  bootstrap_shell "${NAME}" <<EOM
+    umount -l /build/dev{/shm,/pts,}
+    umount -l /build/sys
+    umount /build/proc
+EOM
+  # Copies runtime libraries from sys-devel/gcc if not installed.
+  if [[ docker exec ${DOCKER_OPTS} "${NAME}" 'test' -d /build/etc/env.d/gcc ]]
+  then
+    GCC_LIBS=$(docker exec ${DOCKER_OPTS} "${NAME}" gcc-config -L)
+    GCC_LIBS64=$(echo "${GCC_LIBS}" | cut -d : -f 1)
+    GCC_LIBS32=$(echo "${GCC_LIBS}" | cut -d : -f 2)
+    bootstrap_shell "${NAME}" <<EOM
+      cp -r /etc/env.d/gcc /build/etc/env.d
+      mkdir -p /build${GCC_LIBS32}
+      mkdir -p /build${GCC_LIBS64}
+      cp -P ${GCC_LIBS32}/lib*.so* /build${GCC_LIBS32}
+      cp -P ${GCC_LIBS64}/lib*.so* /build${GCC_LIBS64}
+EOM
+  fi
   docker exec "${NAME}" \
     tar -cf - -C /build . \
     | docker import "${@:3}" - "${IMAGE}"
@@ -52,19 +68,15 @@ function bootstrap_create() {
     --volumes-from "${BUILD_NAME}" \
     --volumes-from "${PORTAGE_NAME}" \
     "${GENTOO_IMAGE}" /bin/bash
-  bootstrap_shell "${NAME}" \
-    -c 'mkdir -p /etc/portage/package.{keywords,mask,use}'
+  docker exec ${DOCKER_OPTS} "${NAME}" \
+    mkdir -p '/etc/portage/package.{keywords,mask,use}'
   bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
-  # TODO(kiyoya): Copied files may conflict if sys-devel/gcc is installed into
-  #               /build.
-  bootstrap_shell "${NAME}" \
-    -c 'cp -P `gcc-config -L | cut -d : -f 1`/lib*.so* /build/usr/lib64'
-  bootstrap_shell "${NAME}" \
-    -c 'cp -P `gcc-config -L | cut -d : -f 2`/lib*.so* /build/usr/lib32'
-  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'mkdir -p /build{/dev,/proc,/sys}'
-  docker exec ${DOCKER_OPTS} "${NAME}" mount -t proc proc /build/proc
-  docker exec ${DOCKER_OPTS} "${NAME}" mount --rbind /sys /build/sys
-  docker exec ${DOCKER_OPTS} "${NAME}" mount --rbind /dev /build/dev
+  bootstrap_shell "${NAME}" <<EOM
+    mkdir -p /build{/dev,/proc,/sys}
+    mount -t proc proc /build/proc
+    mount --rbind /sys /build/sys
+    mount --rbind /dev /build/dev
+EOM
 }
 
 function bootstrap_emerge() {
