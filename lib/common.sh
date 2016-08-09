@@ -72,6 +72,7 @@ function bootstrap_create() {
     mkdir -p '/etc/portage/package.{keywords,mask,use}'
   bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
   bootstrap_shell "${NAME}" <<EOM
+    cp -L /etc/resolv.conf /build/etc/
     mkdir -p /build{/dev,/proc,/sys}
     mount -t proc proc /build/proc
     mount --rbind /sys /build/sys
