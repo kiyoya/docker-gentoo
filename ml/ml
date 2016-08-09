@@ -15,13 +15,13 @@ PACKAGES="
   dev-python/matplotlib
   dev-python/nltk
   dev-python/numpy
+  dev-python/pip
   sci-libs/atlas
   sci-libs/scikits_image
   sci-libs/scikits_learn
   sci-libs/scikits_optimization
   sci-libs/scikits_timeseries
   sci-libs/scipy"
-# dev-python/pip
 
 
 case "${1}" in
@@ -33,9 +33,7 @@ build)
     "${ROOT}"/package.keywords "${NAME}":/etc/portage/package.keywords/ml
   docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/ml
   bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  bootstrap_shell_chroot -x <<EOM
-  env-update
-  source /etc/profile
+  bootstrap_shell_chroot "${NAME}" -x <<EOM
   pip install chainter
 EOM
   bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}"

@@ -35,7 +35,8 @@ function bootstrap_build() {
   NAME="${1}"
   IMAGE="${2}"
   docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount -l /build/dev{/shm,/pts,}'
-  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount /build{/sys,/proc}'
+  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount -l /build/sys'
+  docker exec ${DOCKER_OPTS} "${NAME}" sh -c 'umount /build/proc'
   docker exec "${NAME}" \
     tar -cf - -C /build . \
     | docker import "${@:3}" - "${IMAGE}"
