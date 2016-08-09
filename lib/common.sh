@@ -49,13 +49,13 @@ EOM
     GCC_LIBS64=$(echo "${GCC_LIBS}" | cut -d : -f 1)
     GCC_LIBS32=$(echo "${GCC_LIBS}" | cut -d : -f 2)
     bootstrap_shell "${NAME}" <<EOM
-      cp -r /etc/env.d/gcc /build/etc/env.d
       mkdir -p /build${GCC_LIBS32}
       mkdir -p /build${GCC_LIBS64}
       cp -P ${GCC_LIBS32}/lib*.so* /build${GCC_LIBS32}
       cp -P ${GCC_LIBS64}/lib*.so* /build${GCC_LIBS64}
-      env-update
+      cp /etc/ld.so.conf.d/??gcc* /build/etc/ld.so.conf.d/
 EOM
+    bootstrap_shell_chroot "${NAME}" -c ldconfig
   fi
   docker exec "${NAME}" \
     tar -cf - -C /build . \
