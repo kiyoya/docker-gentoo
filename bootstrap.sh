@@ -16,7 +16,6 @@ case ${1:-} in
     bootstrap_emerge "${@:2}"
     ;;
   portage)
-    # TODO(kiyoya): Add a command to update the portage image.
     case ${2:-} in
       down)
         docker rm "${BUILD_NAME}"
@@ -34,8 +33,11 @@ case ${1:-} in
 EOM
         ;;
       pull)
-        docker pull "${BUILD_IMAGE}"
+        docker pull "${GENTOO_IMAGE}"
         docker pull "${PORTAGE_IMAGE}"
+        # TODO(kiyoya): Recreates iff the image is updated.
+        docker rm "${PORTAGE_NAME}"
+        docker create --name "${PORTAGE_NAME}" "${PORTAGE_IMAGE}"
         ;;
       shell)
         # NOTE: It requires -t option.
