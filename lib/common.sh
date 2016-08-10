@@ -25,9 +25,15 @@ case "${MSYSTEM:-}" in
     function docker() {
       MSYS2_ARG_CONV_EXCL='*' "${DOCKER}" "$@"
     }
+    function volpath() {
+      cygpath -w "${@}"
+    }
     ;;
   *)
     DOCKER_OPTS="${DOCKER_OPTS} -t"
+    function volpath() {
+      realpath "${@}"
+    }
     ;;
 esac
 

@@ -34,18 +34,9 @@ build)
   docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/ml
   bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
   bootstrap_shell_chroot "${NAME}" -x <<EOM
-  pip install chainter
+  pip install chainer
 EOM
   bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}"
-  ;;
-down)
-  docker stop "${NAME}"
-  docker rm "${NAME}"
-  ;;
-exec)
-  docker exec -it \
-    --user "$(id -u)":"$(id -g)" \
-    "${NAME}" "${@:2}"
   ;;
 promote)
   docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
@@ -53,18 +44,14 @@ promote)
 pull)
   docker pull "${IMAGE}:${TAG}"
   ;;
-reload)
-  $0 down
-  $0 up
-  ;;
-up)
-  docker run -d -it \
-    --name "${NAME}" \
+run)
+  docker run -it --rm \
     --log-driver=none \
     --user "$(id -u)":"$(id -g)" \
-    -v "$(realpath ${HOME})":"${HOME}" \
+    -v "$(volpath $(pwd))":/root \
+    -w /root \
     "${IMAGE}:${TAG}" /bin/bash
   ;;
 *)
-  echo "usage: $0 [ build | down | exec | promote | pull | reload | up ]"
+  echo "usage: $0 [ build | promote | pull | run ]"
 esac
