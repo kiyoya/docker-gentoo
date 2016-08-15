@@ -15,8 +15,6 @@ BASE_PACKAGES="
   sys-apps/busybox
   sys-libs/glibc"
 
-DOCKER_OPTS="-i"
-
 LOG_INFO="\033[1;31m"
 
 case "${MSYSTEM:-}" in
@@ -30,7 +28,6 @@ case "${MSYSTEM:-}" in
     }
     ;;
   *)
-    DOCKER_OPTS="${DOCKER_OPTS} -t"
     function volpath() {
       realpath "${@}"
     }
@@ -40,21 +37,21 @@ esac
 function bootstrap_build() {
   NAME="${1}"
   IMAGE="${2}"
-  bootstrap_shell "${NAME}" <<EOM
+  docker exec -i "${NAME}" /bin/bash <<EOM
     umount -l /build/dev{/shm,/pts,}
     umount -l /build/sys
     umount /build/proc
 EOM
   # Copies runtime libraries from sys-devel/gcc if not installed.
   set +e
-  docker exec ${DOCKER_OPTS} "${NAME}" 'test' -d /build/etc/env.d/gcc
+  docker exec -i "${NAME}" 'test' -d /build/etc/env.d/gcc
   HAS_GCC=$?
   set -e
   if [ ${HAS_GCC} -ne 0 ]; then
-    GCC_LIBS=$(docker exec ${DOCKER_OPTS} "${NAME}" gcc-config -L)
+    GCC_LIBS=$(docker exec -i "${NAME}" gcc-config -L)
     GCC_LIBS64=$(echo "${GCC_LIBS}" | cut -d : -f 1)
     GCC_LIBS32=$(echo "${GCC_LIBS}" | cut -d : -f 2)
-    bootstrap_shell "${NAME}" <<EOM
+    docker exec -i "${NAME}" /bin/bash <<EOM
       mkdir -p /build${GCC_LIBS32}
       mkdir -p /build${GCC_LIBS64}
       cp -P ${GCC_LIBS32}/lib*.so* /build${GCC_LIBS32}
@@ -73,15 +70,15 @@ EOM
 function bootstrap_create() {
   NAME="${1}"
   # --privileged is required to build glibc.
-  docker run ${DOCKER_OPTS} -d --name "${NAME}" \
+  docker run -it -d --name "${NAME}" \
     --privileged \
     --volumes-from "${BUILD_NAME}" \
     --volumes-from "${PORTAGE_NAME}" \
     "${GENTOO_IMAGE}" /bin/bash
-  docker exec ${DOCKER_OPTS} "${NAME}" \
+  docker exec -i "${NAME}" \
     mkdir -p '/etc/portage/package.{keywords,mask,use}'
   bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
-  bootstrap_shell "${NAME}" <<EOM
+  docker exec -i "${NAME}" /bin/bash <<EOM
     cp -L /etc/resolv.conf /build/etc/
     mkdir -p /build{/dev,/proc,/sys}
     mount -t proc proc /build/proc
@@ -92,21 +89,21 @@ EOM
 
 function bootstrap_emerge() {
   NAME="${1}"
-  docker exec ${DOCKER_OPTS} "${NAME}" \
+  docker exec -it "${NAME}" \
     emerge --buildpkg --usepkg --onlydeps --quiet "${@:2}"
-  docker exec ${DOCKER_OPTS} "${NAME}" \
+  docker exec -it "${NAME}" \
     emerge --buildpkg --usepkg --root=/build --root-deps=rdeps \
     --quiet "${@:2}"
 }
 
 function bootstrap_shell() {
   NAME="${1}"
-  docker exec ${DOCKER_OPTS} "${NAME}" /bin/bash "${@:2}"
+  docker exec -it "${NAME}" /bin/bash "${@:2}"
 }
 
 function bootstrap_shell_chroot() {
   NAME="${1}"
-  docker exec ${DOCKER_OPTS} "${NAME}" chroot /build /bin/bash "${@:2}"
+  docker exec -it "${NAME}" chroot /build /bin/bash "${@:2}"
 }
 
 function die() {

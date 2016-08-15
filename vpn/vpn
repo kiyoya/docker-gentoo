@@ -1,12 +1,12 @@
 #!/bin/bash
-# @(#) Script to maintain gentoo-based docker image for openvpn.
+# @(#) Script to maintain gentoo-based docker image for vpn.
 
 ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../lib/common.sh
 
-DATADIR="${DATADIR:-/var/data/openvpn}"
-IMAGE="${IMAGE:-kiyoya/openvpn}"
-NAME="${NAME:-openvpn}"
+DATADIR="${DATADIR:-/var/data/vpn}"
+IMAGE="${IMAGE:-kiyoya/vpn}"
+NAME="${NAME:-vpn}"
 TAG="${TAG:-latest}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
@@ -14,6 +14,7 @@ PACKAGES="
   app-crypt/easy-rsa
   net-firewall/iptables
   net-misc/openvpn
+  net-p2p/transmission
   sys-apps/coreutils"
 
 
