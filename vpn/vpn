@@ -15,7 +15,8 @@ PACKAGES="
   net-firewall/iptables
   net-misc/openvpn
   net-p2p/transmission
-  sys-apps/coreutils"
+  sys-apps/coreutils
+  sys-process/psmisc"
 
 
 case "${1}" in
