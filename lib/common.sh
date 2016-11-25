@@ -95,6 +95,8 @@ function bootstrap_create() {
 EOM
 }
 
+# TODO(kiyoya): Add a command to check affected packages by GLSA.
+#               glsa-check -t all && glsa-check -d affected
 function bootstrap_emerge() {
   local NAME="${1}"
   docker exec -i "${NAME}" \
