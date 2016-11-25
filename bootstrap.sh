@@ -32,12 +32,17 @@ case ${1:-} in
           eclean -dq -t ${DURATION} packages
 EOM
         ;;
+      prepare)
+        $0 portage pull
+        # TODO(kiyoya): Recreates iff the image is updated.
+        if docker_container_exists "${PORTAGE_NAME}"; then
+          docker rm "${PORTAGE_NAME}"
+        fi
+        docker create --name "${PORTAGE_NAME}" "${PORTAGE_IMAGE}"
+        ;;
       pull)
         docker pull "${GENTOO_IMAGE}"
         docker pull "${PORTAGE_IMAGE}"
-        # TODO(kiyoya): Recreates iff the image is updated.
-        docker rm "${PORTAGE_NAME}"
-        docker create --name "${PORTAGE_NAME}" "${PORTAGE_IMAGE}"
         ;;
       shell)
         # NOTE: It requires -t option.
