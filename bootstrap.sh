@@ -3,11 +3,11 @@
 
 set -eu
 
-BUILD_IMAGE="${BUILD_IMAGE:-tianon/true}"
-BUILD_NAME="${BUILD_NAME:-portage-build}"
-GENTOO_IMAGE="${GENTOO_IMAGE:-gentoo/stage3-amd64}"
-PORTAGE_IMAGE="${PORTAGE_IMAGE:-gentoo/portage}"
-PORTAGE_NAME="${PORTAGE_NAME:-portage}"
+IMAGE_GENTOO="${IMAGE_GENTOO:-gentoo/stage3-amd64}"
+IMAGE_PORTAGE="${IMAGE_PORTAGE:-gentoo/portage}"
+NAME_PORTAGE="${NAME_PORTAGE:-portage}"
+VOLUME_DISTFILES="${VOLUME_DISTFILES:-portage-distfiles}"
+VOLUME_PACKAGES="${VOLUME_PACKAGES:-portage-packages}"
 
 # Fundamental packages
 BASE_PACKAGES="
@@ -79,12 +79,15 @@ function bootstrap_create() {
   # --privileged is required to build glibc.
   docker run -it -d --name "${NAME}" \
     --privileged \
-    --volumes-from "${BUILD_NAME}" \
-    --volumes-from "${PORTAGE_NAME}" \
+    --volumes-from "${NAME_PORTAGE}":ro \
+    -v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
+    -v "${VOLUME_PACKAGES}":/usr/portage/packages \
     "${@:2}" \
-    "${GENTOO_IMAGE}" /bin/bash
+    "${IMAGE_GENTOO}" /bin/bash
   docker exec -i "${NAME}" \
-    mkdir -p '/etc/portage/package.{keywords,mask,use}'
+    mkdir -p /etc/portage/package.keywords \
+             /etc/portage/package.mask \
+             /etc/portage/package.use
   bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
   bootstrap_shell "${NAME}" <<EOM
     set -eu
@@ -105,6 +108,18 @@ function bootstrap_emerge() {
   docker exec -i "${NAME}" \
     emerge --buildpkg --usepkg --root=/build --root-deps=rdeps \
     --quiet "${@:2}"
+}
+
+function bootstrap_package_keywords() {
+  local NAME="${1}"
+  local FILEPATH="${2}"
+  docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.keywords/"${NAME}"
+}
+
+function bootstrap_package_use() {
+  local NAME="${1}"
+  local FILEPATH="${2}"
+  docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.use/"${NAME}"
 }
 
 function bootstrap_shell() {
@@ -137,11 +152,12 @@ function docker_image_exists() {
 }
 
 function docker_promote() {
-  local REPO="${1}"
-  local TAG="${2}"
-  log "Promoting ${REPO}:${TAG} ..."
-  docker tag "${REPO}":"${TAG}" "${REPO}":latest
-  docker push "${REPO}":"${TAG}"
+  local IMAGE="${1}"
+  local REPO="$(echo ${IMAGE} | cut -d : -f 1)"
+  log "Promoting ${IMAGE} ..."
+  docker tag "${IMAGE}" "${REPO}":latest
+  docker push "${IMAGE}"
+  docker push "${REPO}":latest
 }
 
 function die() {
@@ -167,48 +183,60 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     portage)
       case ${2:-} in
         down)
-          docker rm "${BUILD_NAME}"
-          docker rm "${PORTAGE_NAME}"
+          docker rm "${NAME_PORTAGE}"
+          docker volume rm "${VOLUME_DISTFILES}"
+          docker volume rm "${VOLUME_PACKAGES}"
           ;;
         eclean)
           DURATION="${3:-3w}"
-          docker run ${DOCKER_OPTS} --rm \
-            --volumes-from "${BUILD_NAME}" \
-            --volumes-from "${PORTAGE_NAME}" \
-            "${GENTOO_IMAGE}" /bin/bash -x <<EOM
+          docker run -i --rm \
+            -h "${NAME_PORTAGE}" \
+            --volumes-from "${NAME_PORTAGE}":ro \
+            -v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
+            -v "${VOLUME_PACKAGES}":/usr/portage/packages \
+            "${IMAGE_GENTOO}" /bin/bash <<EOM
+            set -eu
             emerge --quiet --buildpkg --usepkg app-portage/gentoolkit
             eclean -dq -t ${DURATION} distfiles
             eclean -dq -t ${DURATION} packages
 EOM
           ;;
-        prepare)
-          $0 portage pull
-          # TODO(kiyoya): Recreates iff the image is updated.
-          if docker_container_exists "${PORTAGE_NAME}"; then
-            docker rm "${PORTAGE_NAME}"
-          fi
-          docker create --name "${PORTAGE_NAME}" "${PORTAGE_IMAGE}"
+        export)
+          docker run -i --rm \
+            -v "${VOLUME_PACKAGES}":/usr/portage/packages:ro \
+            "${IMAGE_GENTOO}" tar -cf - /usr/portage/packages
+          ;;
+        import)
+          docker run -i --rm \
+            -v "${VOLUME_PACKAGES}":/usr/portage/packages \
+            "${IMAGE_GENTOO}" tar -xf - -C /
           ;;
         pull)
-          docker pull "${GENTOO_IMAGE}"
-          docker pull "${PORTAGE_IMAGE}"
+          docker pull "${IMAGE_GENTOO}"
+          docker pull "${IMAGE_PORTAGE}"
+          ;;
+        reload)
+          if docker_container_exists "${NAME_PORTAGE}"; then
+            docker rm "${NAME_PORTAGE}"
+          fi
+          docker create --name "${NAME_PORTAGE}" "${IMAGE_PORTAGE}"
           ;;
         shell)
-          # NOTE: It requires -t option.
           docker run -it --rm \
-            --volumes-from "${BUILD_NAME}" \
-            --volumes-from "${PORTAGE_NAME}" \
-            "${GENTOO_IMAGE}" /bin/bash
+            -h "${NAME_PORTAGE}" \
+            --volumes-from "${NAME_PORTAGE}" \
+            -v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
+            -v "${VOLUME_PACKAGES}":/usr/portage/packages \
+            "${IMAGE_GENTOO}" /bin/bash
           ;;
         up)
-          docker create --name "${PORTAGE_NAME}" "${PORTAGE_IMAGE}"
-          docker create --name "${BUILD_NAME}" \
-            -v /usr/portage/distfiles \
-            -v /usr/portage/packages \
-            "${BUILD_IMAGE}"
+          docker create --name "${NAME_PORTAGE}" "${IMAGE_PORTAGE}"
+          docker volume create --name "${VOLUME_DISTFILES}"
+          docker volume create --name "${VOLUME_PACKAGES}"
           ;;
         *)
-          echo "$0 portage [ down | eclean | pull | shell | up ]"
+          echo "$0 portage [ down | eclean | export | import | pull | " \
+               "reload | shell | up ]"
           ;;
       esac
       ;;

@@ -8,14 +8,23 @@ https://hub.docker.com/u/kiyoya/
 
 ```shell
 ./bootstrap.sh portage pull
+./bootstrap.sh portage reload  # If there are updates at portage.
+
+# kiyoya/gentoo
+./gentoo/gentoo build
+./gentoo/gentoo promote
+
+# kiyoya/ml
 ./ml/ml build
-./murmur/murmur build
-./openvpn/openvpn build
 ./ml/ml promote
+
+# kiyoya/murmur
+./murmur/murmur build
 ./murmur/murmur promote
-./openvpn/openvpn promote
-docker push kiyoya/ml
-docker push kiyoya/murmur
-docker push kiyoya/openvpn
+
+# kiyoya/vpn
+./vpn/vpn build
+./vpn/vpn promote
+
 ./bootstrap.sh portage eclean
 ```

@@ -5,7 +5,8 @@ ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
 
 DATADIR="${DATADIR:-/var/data/murmur}"
-IMAGE="${IMAGE:-kiyoya/murmur}"
+
+REPO="${REPO:-kiyoya/murmur}"
 NAME="${NAME:-murmur}"
 TAG="${TAG:-latest}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
@@ -16,9 +17,9 @@ PACKAGES="media-sound/murmur"
 case "${1}" in
 build)
   bootstrap_create "${NAME}"
-  docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/murmur
+  bootstrap_package_use "${ROOT}"/package.use
   bootstrap_emerge "${NAME}" ${PACKAGES}
-  bootstrap_build "${NAME}" "${IMAGE}:${BUILD_TAG}" \
+  bootstrap_build "${NAME}" "${REPO}:${BUILD_TAG}" \
     -c "ENV HOME /var/lib/murmur" \
     -c "EXPOSE 64738" \
     -c "EXPOSE 64738/udp"
@@ -31,10 +32,10 @@ logs)
   sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
   ;;
 promote)
-  docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
+  docker_promote "${REPO}":"${BUILD_TAG}"
   ;;
 pull)
-  docker pull "${IMAGE}:${TAG}"
+  docker pull "${REPO}:${TAG}"
   ;;
 reload)
   $0 down
@@ -42,6 +43,7 @@ reload)
   ;;
 up)
   docker run -d \
+    -h "${NAME}" \
     -p 64738:64738 \
     -p 64738:64738/udp \
     --name "${NAME}" \
@@ -49,7 +51,7 @@ up)
     -v "${DATADIR}"/murmur.sqlite:/var/lib/murmur/murmur.sqlite \
     --restart always \
     --log-driver=journald \
-    "${IMAGE}:${TAG}" /usr/bin/murmurd -fg -ini /etc/murmur/murmur.ini
+    "${REPO}:${TAG}" /usr/bin/murmurd -fg -ini /etc/murmur/murmur.ini
   ;;
 *)
   echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"

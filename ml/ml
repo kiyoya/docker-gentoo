@@ -5,7 +5,7 @@ ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
 
 NAME="${NAME:-ml}"
-IMAGE="${IMAGE:-kiyoya/ml}"
+REPO="${REPO:-kiyoya/ml}"
 TAG="${TAG:-latest}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
@@ -29,28 +29,29 @@ build)
   bootstrap_create "${NAME}"
   bootstrap_shell "${NAME}" \
     -c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
-  docker cp \
-    "${ROOT}"/package.keywords "${NAME}":/etc/portage/package.keywords/ml
-  docker cp "${ROOT}"/package.use "${NAME}":/etc/portage/package.use/ml
+  bootstrap_package_keywords "${NAME}" "${ROOT}"/package.keywords
+  bootstrap_package_use "${NAME}" "${ROOT}"/package.use
   bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  bootstrap_shell_chroot "${NAME}" -x <<EOM
-  pip install chainer
+  bootstrap_shell_chroot "${NAME}" <<EOM
+    set -eu
+    pip install chainer
 EOM
-  bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}"
+  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}"
   ;;
 promote)
-  docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
+  docker_promote "${REPO}":"${BUILD_TAG}"
   ;;
 pull)
-  docker pull "${IMAGE}:${TAG}"
+  docker pull "${REPO}":"${TAG}"
   ;;
 run)
   docker run -it --rm \
+    -h "${NAME}" \
     --log-driver=none \
     --user "$(id -u)":"$(id -g)" \
     -v "$(volpath $(pwd))":/root \
     -w /root \
-    "${IMAGE}:${TAG}" /bin/bash
+    "${REPO}":"${TAG}" /bin/bash
   ;;
 *)
   echo "usage: $0 [ build | promote | pull | run ]"

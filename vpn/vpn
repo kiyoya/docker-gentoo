@@ -5,7 +5,8 @@ ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
 
 DATADIR="${DATADIR:-/var/data/vpn}"
-IMAGE="${IMAGE:-kiyoya/vpn}"
+
+REPO="${REPO:-kiyoya/vpn}"
 NAME="${NAME:-vpn}"
 TAG="${TAG:-latest}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
@@ -25,7 +26,7 @@ build)
   bootstrap_emerge "${NAME}" ${PACKAGES}
   docker cp \
     "${ROOT}"/docker-entrypoint.sh "${NAME}":/build/docker-entrypoint.sh
-  bootstrap_build "${NAME}" "${IMAGE}":"${BUILD_TAG}" \
+  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}" \
     -c "VOLUME /etc/openvpn" \
     -c "EXPOSE 1194" \
     -c "EXPOSE 1194/udp"
@@ -38,10 +39,10 @@ logs)
   sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
   ;;
 promote)
-  docker tag "${IMAGE}":"${BUILD_TAG}" "${IMAGE}":latest
+  docker_promote "${REPO}":"${BUILD_TAG}"
   ;;
 pull)
-  docker pull "${IMAGE}:${TAG}"
+  docker pull "${REPO}:${TAG}"
   ;;
 reload)
   $0 down
@@ -49,6 +50,7 @@ reload)
   ;;
 up)
   sudo docker run -d -it \
+    -h "${NAME}" \
     -p 1194:1194/udp \
     --cap-add=NET_ADMIN \
     --device=/dev/net/tun \
@@ -56,7 +58,7 @@ up)
     -v "${DATADIR}":/etc/openvpn:ro \
     --restart always \
     --log-driver=journald \
-    "${IMAGE}:${TAG}" /docker-entrypoint.sh
+    "${REPO}:${TAG}" /docker-entrypoint.sh
   ;;
 *)
   echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"

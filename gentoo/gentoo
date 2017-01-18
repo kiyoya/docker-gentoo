@@ -1,28 +1,57 @@
-#!/bin/sh
+#!/bin/bash
+# @(#) Script to maintain gentoo-based docker image for daily use.
 
-set -eu
+ROOT="${ROOT:-$(dirname $0)}"
+source "${ROOT}"/../bootstrap.sh
 
 NAME="${NAME:-gentoo}"
-IMAGE="${IMAGE:-kiyoya/gentoo}"
+REPO="${REPO:-kiyoya/gentoo}"
 TAG="${TAG:-latest}"
+BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
-MY_UID="${MY_UID:-$(id -u)}"
-MY_GID="${MY_GID:-$(id -g)}"
-MY_USER="${MY_USER:-$(whoami)}"
-MY_HOME="${MY_HOME:-${HOME}}"
+PACKAGES="
+  app-editors/vim
+  app-misc/screen
+  app-shells/zsh
+  dev-python/pip
+  dev-util/cmake
+  dev-vcs/git
+  net-libs/nodejs"
 
-function job_down() {
-  docker stop "${NAME}"
-  docker rm "${NAME}"
-}
 
-function job_enter() {
-  docker exec -it "${NAME}" sudo -u "${MY_USER}" -i
-}
+case "${1}" in
+build)
+  bootstrap_create "${NAME}"
+  bootstrap_shell "${NAME}" \
+    -c 'echo "USE=\"${USE} zsh-completion\"" >> /etc/portage/make.conf'
+  bootstrap_package_use "${NAME}" "${ROOT}"/package.use
+  bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
+  bootstrap_shell_chroot "${NAME}" <<EOM
+    set -eu
+    pip install awscli
+    npm install -g bower polyserve react-tools
+EOM
+  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}"
+  ;;
+promote)
+  docker_promote "${REPO}":"${BUILD_TAG}"
+  ;;
+pull)
+  docker pull "${REPO}":"${TAG}"
+  ;;
+run)
+  docker run -it --rm \
+    -h "${NAME}" \
+    --log-driver=none \
+    --user "$(id -u)":"$(id -g)" \
+    -v "$(volpath $(pwd))":/root \
+    -w /root \
+    "${REPO}":"${TAG}" /bin/bash
+  ;;
+*)
+  echo "usage: $0 [ build | promote | pull | run ]"
+esac
 
-function job_pull() {
-  docker pull "${IMAGE}:${TAG}"
-}
 
 function job_up() {
   docker run -d -i -t \
@@ -36,7 +65,7 @@ function job_up() {
     -v "${MY_HOME}/.screen" \
     -v "${MY_HOME}:${MY_HOME}" \
     --restart always \
-    "${IMAGE}:${TAG}"
+    "${REPO}:${TAG}"
 }
 
 case "${1}" in
