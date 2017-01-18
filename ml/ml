@@ -2,7 +2,7 @@
 # @(#) Script to maintain gentoo-based docker image for machine learning.
 
 ROOT="${ROOT:-$(dirname $0)}"
-source "${ROOT}"/../lib/common.sh
+source "${ROOT}"/../bootstrap.sh
 
 NAME="${NAME:-ml}"
 IMAGE="${IMAGE:-kiyoya/ml}"
