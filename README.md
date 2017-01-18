@@ -4,6 +4,13 @@ Scripts to build and maintain gentoo-based docker images.
 
 https://hub.docker.com/u/kiyoya/
 
+## Initial setup
+
+```shell
+./bootstrap.sh portage pull
+./bootstrap.sh portage up
+```
+
 ## Biweekly update routine
 
 ```shell
