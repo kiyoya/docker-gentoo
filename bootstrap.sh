@@ -116,6 +116,12 @@ function bootstrap_package_keywords() {
 	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.keywords/"${NAME}"
 }
 
+function bootstrap_package_mask() {
+	local NAME="${1}"
+	local FILEPATH="${2}"
+	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.mask/"${NAME}"
+}
+
 function bootstrap_package_use() {
 	local NAME="${1}"
 	local FILEPATH="${2}"
