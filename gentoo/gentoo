@@ -13,10 +13,8 @@ PACKAGES="
   app-editors/vim
   app-misc/screen
   app-shells/zsh
-  dev-python/pip
   dev-util/cmake
-  dev-vcs/git
-  net-libs/nodejs"
+  dev-vcs/git"
 
 
 case "${1}" in
@@ -26,11 +24,6 @@ build)
     -c 'echo "USE=\"${USE} zsh-completion\"" >> /etc/portage/make.conf'
   bootstrap_package_use "${NAME}" "${ROOT}"/package.use
   bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  bootstrap_shell_chroot "${NAME}" <<EOM
-    set -eu
-    pip install awscli
-    npm install -g bower polyserve react-tools
-EOM
   bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}"
   ;;
 promote)
