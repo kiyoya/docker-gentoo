@@ -103,9 +103,9 @@ EOM
 #               glsa-check -t all && glsa-check -d affected
 function bootstrap_emerge() {
   local NAME="${1}"
-  docker exec -i "${NAME}" \
-    emerge --buildpkg --usepkg --onlydeps --quiet "${@:2}"
-  docker exec -i "${NAME}" \
+  docker exec -it "${NAME}" \
+    emerge --buildpkg --usepkg --onlydeps --with-bdeps=y --quiet "${@:2}"
+  docker exec -it "${NAME}" \
     emerge --buildpkg --usepkg --root=/build --root-deps=rdeps \
     --quiet "${@:2}"
 }
