@@ -17,7 +17,7 @@ PACKAGES="
   dev-vcs/git"
 
 
-case "${1}" in
+case "${1:-help}" in
 build)
   bootstrap_create "${NAME}"
   bootstrap_shell "${NAME}" \
@@ -39,45 +39,8 @@ run)
     --user "$(id -u)":"$(id -g)" \
     -v "$(volpath $(pwd))":/root \
     -w /root \
-    "${REPO}":"${TAG}" /bin/bash
+    "${REPO}":"${TAG}" /bin/zsh
   ;;
 *)
   echo "usage: $0 [ build | promote | pull | run ]"
-esac
-
-
-function job_up() {
-  docker run -d -i -t \
-    --name "${NAME}" \
-    --net=host \
-    --log-driver=none \
-    -e "MY_UID=${MY_UID}" \
-    -e "MY_GID=${MY_GID}" \
-    -e "MY_USER=${MY_USER}" \
-    -e "MY_HOME=${MY_HOME}" \
-    -v "${MY_HOME}/.screen" \
-    -v "${MY_HOME}:${MY_HOME}" \
-    --restart always \
-    "${REPO}:${TAG}"
-}
-
-case "${1}" in
-down)
-  job_down
-  ;;
-enter)
-  job_enter
-  ;;
-pull)
-  job_pull
-  ;;
-reload)
-  job_down
-  job_up
-  ;;
-up)
-  job_up
-  ;;
-*)
-  echo "usage: $0 [ down | enter | pull | reload | up ]"
 esac
