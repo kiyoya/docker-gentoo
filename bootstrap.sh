@@ -18,6 +18,12 @@ BASE_PACKAGES="
 
 LOG_INFO="\033[1;31m"
 
+if builtin command -v journalctl > /dev/null; then
+	LOG_DRIVER='journald'
+else
+	LOG_DRIVER='json-file'
+fi
+
 case "${MSYSTEM:-}" in
 	MINGW*)
 		DOCKER="$(command -v docker)"
@@ -155,6 +161,17 @@ function docker_image_exists() {
 	local REPO="${1}"
 	local TAG="${2}"
 	docker images "${REPO}" | awk '{print $2}' | tail -n +2 | grep -q ^"${TAG}"$
+}
+
+function docker_logs() {
+	case "${LOG_DRIVER}" in
+		journald)
+			sudo journalctl CONTAINER_NAME="${NAME}" -f
+			;;
+		*)
+			docker logs "${NAME}"
+			;;
+	esac
 }
 
 function docker_promote() {
