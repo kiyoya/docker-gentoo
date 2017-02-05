@@ -42,7 +42,7 @@ promote)
   docker_promote "${REPO}":"${BUILD_TAG}"
   ;;
 pull)
-  docker pull "${REPO}:${TAG}"
+  docker pull "${REPO}":"${TAG}"
   ;;
 reload)
   $0 down
@@ -58,7 +58,7 @@ up)
     -v "${DATADIR}":/etc/openvpn:ro \
     --restart always \
     --log-driver=journald \
-    "${REPO}:${TAG}" /docker-entrypoint.sh
+    "${REPO}":"${TAG}" /docker-entrypoint.sh
   ;;
 *)
   echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"
