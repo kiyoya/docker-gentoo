@@ -138,7 +138,7 @@ function bootstrap_package_use() {
 function bootstrap_shell() {
 	local NAME="${1}"
 	if [ -t 0 ]; then
-		docker exec -i "${NAME}" /bin/bash "${@:2}"
+		docker exec -it "${NAME}" /bin/bash "${@:2}"
 	else
 		docker exec -i "${NAME}" /bin/bash "${@:2}" -c "$(cat -)"
 	fi
@@ -147,7 +147,7 @@ function bootstrap_shell() {
 function bootstrap_shell_chroot() {
 	local NAME="${1}"
 	if [ -t 0 ]; then
-		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}"
+		docker exec -it "${NAME}" chroot /build /bin/bash "${@:2}"
 	else
 		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}" -c "$(cat -)"
 	fi
@@ -197,6 +197,9 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 	case ${1:-} in
 		build)
 			bootstrap_build "${@:2}"
+			;;
+		chroot)
+			bootstrap_shell_chroot "${NAME}"
 			;;
 		create)
 			bootstrap_create "${@:2}"
@@ -269,7 +272,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 			bootstrap_shell "${@:2}"
 			;;
 		*)
-			echo "$0 [ build | create | emerge | portage | shell ]"
+			echo "$0 [ build | chroot | create | emerge | portage | shell ]"
 			;;
 	esac
 fi
