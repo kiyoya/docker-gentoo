@@ -253,6 +253,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 						-v "${VOLUME_DISTFILES}":/usr/portage/distfiles:ro \
 						-v "${VOLUME_PACKAGES}":/usr/portage/packages:ro \
 						"${IMAGE_GENTOO}" emerge --sync "${@:3}"
+					;;
 				up)
 					docker volume create --name "${VOLUME_PORTAGE}"
 					docker volume create --name "${VOLUME_DISTFILES}"
