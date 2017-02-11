@@ -263,7 +263,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 					docker volume create --name "${VOLUME_PACKAGES}"
 					;;
 				*)
-					echo "$0 portage [ down | eclean | export | import | reload | " \
+					echo "$0 portage [ down | eclean | export | import | reload |" \
 							 "shell | sync | up ]"
 					;;
 			esac
