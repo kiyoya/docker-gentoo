@@ -35,9 +35,15 @@ case "${MSYSTEM:-}" in
 		}
 		;;
 	*)
-		function volumepath() {
-			realpath "$@"
-		}
+		if builtin command -v realpath > /dev/null; then
+			function volumepath() {
+				realpath "$@"
+			}
+		else
+			function volumepath() {
+				perl -e "use File::Spec;say STDOUT File::Spec->rel2abs('$@');"
+			}
+		fi
 		;;
 esac
 
@@ -85,7 +91,6 @@ function bootstrap_create() {
 	# --privileged is required to build glibc.
 	docker run -it -d --name "${NAME}" \
 		--privileged \
-		--volumes-from "${NAME_PORTAGE}":ro \
 		-v "${VOLUME_PORTAGE}":/usr/portage:ro \
 		-v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
 		-v "${VOLUME_PACKAGES}":/usr/portage/packages \
