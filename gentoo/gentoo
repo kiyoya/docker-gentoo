@@ -17,8 +17,7 @@ PACKAGES="
 	app-misc/screen
 	app-shells/zsh
 	dev-util/cmake
-	dev-vcs/git
-	@system"
+	dev-vcs/git"
 
 
 case "${1:-}" in
