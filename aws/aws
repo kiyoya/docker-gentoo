@@ -42,7 +42,7 @@ promote)
 	docker_promote "${REPO}":"${BUILD_TAG}"
 	;;
 run)
-	docker run -it --rm \
+	docker run -i --rm \
 		-h "${NAME}" \
 		--log-driver none \
 		--user "$(id -u)":"$(id -g)" \
