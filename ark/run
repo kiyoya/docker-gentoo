@@ -1,0 +1,26 @@
+#!/bin/bash
+
+DATADIR="${DATADIR:-/var/data/steam}"
+
+NAME="ark"
+REPO="kiyoya/steam"
+TAG="latest"
+
+RUN_UID="${RUN_UID:-1101}"
+RUN_GID="${RUN_GID:-1101}"
+
+docker run -d \
+	-h "${NAME}" \
+	-p 7777:7777/udp \
+	-p 7778:7778/udp \
+	-p 27015:27015/udp \
+	--name "${NAME}" \
+	--restart always \
+	--user "${RUN_UID}":"${RUN_GID}" \
+	-v "${DATADIR}":/steam \
+	-w /steam \
+	"${REPO}":"${TAG}" \
+	/steam/ShooterGame/ShooterGameServer TheIsland?listen \
+		-log \
+		-nosteamclient \
+		-server

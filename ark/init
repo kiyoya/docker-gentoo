@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+
+import logging
+import os
+from urllib.request import urlopen
+
+import boto3
+
+ALLOCATION_ID = 'eipalloc-e646a382'
+NAME = 'ark'
+ZONE_ID = 'ap-northeast-1c'
+
+METADATA_INSTANCE_ID = 'http://169.254.169.254/latest/meta-data/instance-id'
+
+
+class ArkServer(object):
+
+    def __init__(self):
+        self._ec2 = boto3.resource('ec2')
+        self._client = boto3.client('ec2')
+        if os.path.isfile('/opt/aws/bin/ec2-metadata'):
+            instance_id = urlopen(METADATA_INSTANCE_ID).read().decode()
+            self._instance = self._ec2.Instance(instance_id)
+        else:
+            self._instance = self._get_instance()
+
+    def check_address(self):
+        vpc_address = self._ec2.VpcAddress(ALLOCATION_ID)
+        if vpc_address.instance_id == self._instance.id:
+            return
+        vpc_address.associate(InstanceId=instance.id)
+
+    def check_volume(self):
+        volume = self._get_or_create_volume()
+        attachments = volume.attachments
+        if attachments:
+            attachment = attachments[0]
+            if attachment['InstanceId'] == self._instance.id:
+                return
+        volume.attach_to_instance(
+                InstanceId=self._instance.id,
+                Device='/dev/sdf')
+
+    def _get_instance(self):
+        paginator = self._client.get_paginator('describe_instances')
+        seq = iter(paginator.paginate(
+            Filters=[
+                { 'Name': 'availability-zone', 'Values': [ ZONE_ID ] },
+                { 'Name': 'instance-state-name', 'Values': [ 'pending', 'running' ] },
+                { 'Name': 'tag:Name', 'Values': [ NAME ] },
+            ],
+            PaginationConfig={ 'MaxItems': 1 }))
+        response = next(seq)
+        if response['Reservations']:
+            reservation = response['Reservations'][0]
+            instance = reservation['Instances'][0]
+            logging.info('Instance is running: %s' % instance)
+            return self._ec2.Instance(instance['InstanceId'])
+
+        return None
+
+    def _get_or_create_volume(self):
+        paginator = self._client.get_paginator('describe_volumes')
+        seq = iter(paginator.paginate(
+            Filters=[
+                { 'Name': 'availability-zone', 'Values': [ ZONE_ID ] },
+                { 'Name': 'tag:Name', 'Values': [ NAME ] },
+            ],
+            PaginationConfig={ 'MaxItems': 1 }))
+        response = next(seq)
+        # TODO(kiyoya): Create a volume if unavailable.
+        volume = response['Volumes'][0]
+        return self._ec2.Volume(volume['VolumeId'])
+
+
+if __name__ == '__main__':
+    ark = ArkServer()
+    ark.check_address()
+    ark.check_volume()
+    print('Instance: %s' % ark._instance)
