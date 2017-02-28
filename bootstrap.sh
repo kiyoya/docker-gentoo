@@ -124,20 +124,20 @@ function bootstrap_emerge() {
 
 function bootstrap_package_keywords() {
 	local NAME="${1}"
-	local FILEPATH="${2}"
-	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.keywords/"${NAME}"
+	bootstrap_shell "${1}" -c \
+		"cat > /etc/portage/package.keywords/${NAME}"
 }
 
 function bootstrap_package_mask() {
 	local NAME="${1}"
-	local FILEPATH="${2}"
-	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.mask/"${NAME}"
+	bootstrap_shell "${1}" -c \
+		"cat > /etc/portage/package.mask/${NAME}"
 }
 
 function bootstrap_package_use() {
 	local NAME="${1}"
-	local FILEPATH="${2}"
-	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.use/"${NAME}"
+	bootstrap_shell "${1}" -c \
+		"cat > /etc/portage/package.use/${NAME}"
 }
 
 function bootstrap_shell() {
@@ -145,7 +145,7 @@ function bootstrap_shell() {
 	if [ -t 0 ]; then
 		docker exec -it "${NAME}" /bin/bash "${@:2}"
 	else
-		docker exec -i "${NAME}" /bin/bash "${@:2}" -c "$(cat -)"
+		docker exec -i "${NAME}" /bin/bash "${@:2}"
 	fi
 }
 
@@ -154,7 +154,7 @@ function bootstrap_shell_chroot() {
 	if [ -t 0 ]; then
 		docker exec -it "${NAME}" chroot /build /bin/bash "${@:2}"
 	else
-		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}" -c "$(cat -)"
+		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}"
 	fi
 }
 

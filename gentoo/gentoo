@@ -23,9 +23,13 @@ PACKAGES="
 case "${1:-}" in
 build)
 	bootstrap_create "${BUILD_NAME}"
-	bootstrap_shell "${BUILD_NAME}" \
-		-c 'echo "USE=\"${USE} zsh-completion\"" >> /etc/portage/make.conf'
-	bootstrap_package_use "${BUILD_NAME}" "${ROOT}"/package.use
+	bootstrap_shell "${BUILD_NAME}" -c 'cat >> /etc/portage/make.conf' <<-EOM
+		USE="\${USE} zsh-completion"
+	EOM
+	bootstrap_package_use "${BUILD_NAME}" <<-EOM
+		app-editors/vim python
+		dev-python/numpy lapack
+	EOM
 	bootstrap_emerge "${BUILD_NAME}" \
 		--update --deep --newuse ${PACKAGES}
 	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"

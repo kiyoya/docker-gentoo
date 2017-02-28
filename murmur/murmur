@@ -20,7 +20,9 @@ PACKAGES="media-sound/murmur"
 case "${1:-}" in
 build)
 	bootstrap_create "${BUILD_NAME}"
-	bootstrap_package_use "${BUILD_NAME}" "${ROOT}"/package.use
+	bootstrap_package_use "${BUILD_NAME}" <<-EOM
+		media-sound/murmur -dbus -ice
+	EOM
 	bootstrap_emerge "${BUILD_NAME}" ${PACKAGES}
 	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}" \
 		-c "ENV HOME /var/lib/murmur" \

@@ -30,10 +30,23 @@ PACKAGES="
 case "${1:-}" in
 build)
 	bootstrap_create "${BUILD_NAME}"
-	bootstrap_shell "${BUILD_NAME}" \
-		-c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
-	bootstrap_package_keywords "${BUILD_NAME}" "${ROOT}"/package.keywords
-	bootstrap_package_use "${BUILD_NAME}" "${ROOT}"/package.use
+	bootstrap_shell "${BUILD_NAME}" -c 'cat >> /etc/portage/make.conf' <<-EOM
+		"USE="\${USE} lapack"
+	EOM
+	bootstrap_package_keywords "${BUILD_NAME}" <<-EOM
+		dev-python/cython ~amd64
+		sci-libs/atlas ~amd64
+		sci-libs/scikits ~amd64
+		sci-libs/scikits_image ~amd64
+		sci-libs/scikits_learn ~amd64
+		sci-libs/scikits_optimization ~amd64
+		sci-libs/scikits_timeseries ~amd64
+	EOM
+	bootstrap_package_use "${BUILD_NAME}" <<-EOM
+		dev-libs/c-blosc hdf5
+		sci-libs/atlas generic
+		sci-libs/scipy sparse
+	EOM
 	bootstrap_emerge "${BUILD_NAME}" --update --deep --newuse ${PACKAGES}
 	bootstrap_shell_chroot "${BUILD_NAME}" <<EOM
 		set -eu
