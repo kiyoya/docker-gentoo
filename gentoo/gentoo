@@ -1,5 +1,6 @@
 #!/bin/bash
 # @(#) Script to maintain gentoo-based docker image for daily use.
+set -eu
 
 ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
@@ -7,40 +8,48 @@ source "${ROOT}"/../bootstrap.sh
 NAME="${NAME:-gentoo}"
 REPO="${REPO:-kiyoya/gentoo}"
 TAG="${TAG:-latest}"
+
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="
-  app-editors/vim
-  app-misc/screen
-  app-shells/zsh
-  dev-util/cmake
-  dev-vcs/git"
+	app-editors/vim
+	app-misc/screen
+	app-shells/zsh
+	dev-util/cmake
+	dev-vcs/git"
 
 
-case "${1:-help}" in
+case "${1:-}" in
 build)
-  bootstrap_create "${NAME}"
-  bootstrap_shell "${NAME}" \
-    -c 'echo "USE=\"${USE} zsh-completion\"" >> /etc/portage/make.conf'
-  bootstrap_package_use "${NAME}" "${ROOT}"/package.use
-  bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}"
-  ;;
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_shell "${BUILD_NAME}" -c 'cat >> /etc/portage/make.conf' <<-EOM
+		USE="\${USE} zsh-completion"
+	EOM
+	bootstrap_package_use "${BUILD_NAME}" <<-EOM
+		app-editors/vim python
+		dev-python/numpy lapack
+	EOM
+	bootstrap_emerge "${BUILD_NAME}" \
+		--update --deep --newuse ${PACKAGES}
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
+	;;
 promote)
-  docker_promote "${REPO}":"${BUILD_TAG}"
-  ;;
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
 pull)
-  docker pull "${REPO}":"${TAG}"
-  ;;
+	docker pull "${REPO}":"${TAG}"
+	;;
 run)
-  docker run -it --rm \
-    -h "${NAME}" \
-    --log-driver=none \
-    --user "$(id -u)":"$(id -g)" \
-    -v "$(volpath $(pwd))":/root \
-    -w /root \
-    "${REPO}":"${TAG}" /bin/zsh
-  ;;
+	docker run -it --rm \
+		-h "${NAME}" \
+		--log-driver=none \
+		--user "$(id -u)":"$(id -g)" \
+		-v "$(volpath $(pwd))":/root \
+		-w /root \
+		"${REPO}":"${TAG}" /bin/zsh
+	;;
 *)
-  echo "usage: $0 [ build | promote | pull | run ]"
+	echo "usage: $0 [ build | promote | pull | run ]" 1>&2
+	exit 1
 esac

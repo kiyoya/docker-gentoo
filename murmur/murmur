@@ -1,58 +1,64 @@
 #!/bin/bash
 # @(#) Script to maintain gentoo-based docker image for murmur.
+set -eu
 
 ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
 
 DATADIR="${DATADIR:-/var/data/murmur}"
 
-REPO="${REPO:-kiyoya/murmur}"
 NAME="${NAME:-murmur}"
+REPO="${REPO:-kiyoya/murmur}"
 TAG="${TAG:-latest}"
+
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="media-sound/murmur"
 
 
-case "${1}" in
+case "${1:-}" in
 build)
-  bootstrap_create "${NAME}"
-  bootstrap_package_use "${NAME}" "${ROOT}"/package.use
-  bootstrap_emerge "${NAME}" ${PACKAGES}
-  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}" \
-    -c "ENV HOME /var/lib/murmur" \
-    -c "EXPOSE 64738" \
-    -c "EXPOSE 64738/udp"
-  ;;
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_package_use "${BUILD_NAME}" <<-EOM
+		media-sound/murmur -dbus -ice
+	EOM
+	bootstrap_emerge "${BUILD_NAME}" ${PACKAGES}
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}" \
+		-c "ENV HOME /var/lib/murmur" \
+		-c "EXPOSE 64738" \
+		-c "EXPOSE 64738/udp"
+	;;
 down)
-  docker stop "${NAME}"
-  docker rm "${NAME}"
-  ;;
+	docker stop "${NAME}"
+	docker rm "${NAME}"
+	;;
 logs)
-  sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
-  ;;
+	sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
+	;;
 promote)
-  docker_promote "${REPO}":"${BUILD_TAG}"
-  ;;
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
 pull)
-  docker pull "${REPO}":"${TAG}"
-  ;;
+	docker pull "${REPO}":"${TAG}"
+	;;
 reload)
-  $0 down
-  $0 up
-  ;;
+	$0 down
+	$0 up
+	;;
 up)
-  docker run -d \
-    -h "${NAME}" \
-    -p 64738:64738 \
-    -p 64738:64738/udp \
-    --name "${NAME}" \
-    -v "${DATADIR}"/murmur.ini:/etc/murmur/murmur.ini:ro \
-    -v "${DATADIR}"/murmur.sqlite:/var/lib/murmur/murmur.sqlite \
-    --restart always \
-    --log-driver=journald \
-    "${REPO}":"${TAG}" /usr/bin/murmurd -fg -ini /etc/murmur/murmur.ini
-  ;;
+	docker run -d \
+		-h "${NAME}" \
+		-p 64738:64738 \
+		-p 64738:64738/udp \
+		--name "${NAME}" \
+		-v "${DATADIR}"/murmur.ini:/etc/murmur/murmur.ini:ro \
+		-v "${DATADIR}"/murmur.sqlite:/var/lib/murmur/murmur.sqlite \
+		--restart always \
+		--log-driver=journald \
+		"${REPO}":"${TAG}" /usr/bin/murmurd -fg -ini /etc/murmur/murmur.ini
+	;;
 *)
-  echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"
+	echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]" 1>&2
+	exit 1
 esac

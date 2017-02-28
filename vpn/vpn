@@ -1,65 +1,69 @@
 #!/bin/bash
 # @(#) Script to maintain gentoo-based docker image for vpn.
+set -eu
 
 ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
 
 DATADIR="${DATADIR:-/var/data/vpn}"
 
-REPO="${REPO:-kiyoya/vpn}"
 NAME="${NAME:-vpn}"
+REPO="${REPO:-kiyoya/vpn}"
 TAG="${TAG:-latest}"
+
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="
-  app-crypt/easy-rsa
-  net-firewall/iptables
-  net-misc/openvpn
-  net-p2p/transmission
-  sys-apps/coreutils
-  sys-process/psmisc"
+	app-crypt/easy-rsa
+	net-firewall/iptables
+	net-misc/openvpn
+	net-p2p/transmission
+	sys-apps/coreutils
+	sys-process/psmisc"
 
 
-case "${1}" in
+case "${1:-}" in
 build)
-  bootstrap_create "${NAME}"
-  bootstrap_emerge "${NAME}" ${PACKAGES}
-  docker cp \
-    "${ROOT}"/docker-entrypoint.sh "${NAME}":/build/docker-entrypoint.sh
-  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}" \
-    -c "VOLUME /etc/openvpn" \
-    -c "EXPOSE 1194" \
-    -c "EXPOSE 1194/udp"
-  ;;
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_emerge "${BUILD_NAME}" ${PACKAGES}
+	docker cp \
+		"${ROOT}"/docker-entrypoint.sh "${BUILD_NAME}":/build/docker-entrypoint.sh
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}" \
+		-c "VOLUME /etc/openvpn" \
+		-c "EXPOSE 1194" \
+		-c "EXPOSE 1194/udp"
+	;;
 down)
-  sudo docker stop "${NAME}"
-  sudo docker rm "${NAME}"
-  ;;
+	sudo docker stop "${NAME}"
+	sudo docker rm "${NAME}"
+	;;
 logs)
-  sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
-  ;;
+	sudo journalctl CONTAINER_NAME="${NAME}" "${@:2}"
+	;;
 promote)
-  docker_promote "${REPO}":"${BUILD_TAG}"
-  ;;
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
 pull)
-  docker pull "${REPO}":"${TAG}"
-  ;;
+	docker pull "${REPO}":"${TAG}"
+	;;
 reload)
-  $0 down
-  $0 up
-  ;;
+	$0 down
+	$0 up
+	;;
 up)
-  sudo docker run -d -it \
-    -h "${NAME}" \
-    -p 1194:1194/udp \
-    --cap-add=NET_ADMIN \
-    --device=/dev/net/tun \
-    --name "${NAME}" \
-    -v "${DATADIR}":/etc/openvpn:ro \
-    --restart always \
-    --log-driver=journald \
-    "${REPO}":"${TAG}" /docker-entrypoint.sh
-  ;;
+	sudo docker run -d -it \
+		-h "${NAME}" \
+		-p 1194:1194/udp \
+		--cap-add=NET_ADMIN \
+		--device=/dev/net/tun \
+		--name "${NAME}" \
+		-v "${DATADIR}":/etc/openvpn:ro \
+		--restart always \
+		--log-driver=journald \
+		"${REPO}":"${TAG}" /docker-entrypoint.sh
+	;;
 *)
-  echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]"
+	echo "usage: $0 [ build | down | logs | promote | pull | reload | up ]" 1>&2
+	exit 1
 esac

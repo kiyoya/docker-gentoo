@@ -4,8 +4,8 @@
 set -eu
 
 IMAGE_GENTOO="${IMAGE_GENTOO:-gentoo/stage3-amd64}"
-IMAGE_PORTAGE="${IMAGE_PORTAGE:-gentoo/portage}"
 NAME_PORTAGE="${NAME_PORTAGE:-portage}"
+VOLUME_PORTAGE="${VOLUME_PORTAGE:-portage}"
 VOLUME_DISTFILES="${VOLUME_DISTFILES:-portage-distfiles}"
 VOLUME_PACKAGES="${VOLUME_PACKAGES:-portage-packages}"
 
@@ -35,9 +35,15 @@ case "${MSYSTEM:-}" in
 		}
 		;;
 	*)
-		function volumepath() {
-			realpath "$@"
-		}
+		if builtin command -v realpath > /dev/null; then
+			function volumepath() {
+				realpath "$@"
+			}
+		else
+			function volumepath() {
+				perl -e "use File::Spec;say STDOUT File::Spec->rel2abs('$@');"
+			}
+		fi
 		;;
 esac
 
@@ -85,15 +91,15 @@ function bootstrap_create() {
 	# --privileged is required to build glibc.
 	docker run -it -d --name "${NAME}" \
 		--privileged \
-		--volumes-from "${NAME_PORTAGE}":ro \
+		-v "${VOLUME_PORTAGE}":/usr/portage:ro \
 		-v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
 		-v "${VOLUME_PACKAGES}":/usr/portage/packages \
 		"${@:2}" \
 		"${IMAGE_GENTOO}" /bin/bash
 	docker exec -i "${NAME}" \
 		mkdir -p /etc/portage/package.keywords \
-						 /etc/portage/package.mask \
-						 /etc/portage/package.use
+		         /etc/portage/package.mask \
+		         /etc/portage/package.use
 	bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
 	bootstrap_shell "${NAME}" <<-EOM
 		set -eu
@@ -106,7 +112,7 @@ function bootstrap_create() {
 }
 
 # TODO(kiyoya): Add a command to check affected packages by GLSA.
-#							 glsa-check -t all && glsa-check -d affected
+#               glsa-check -t all && glsa-check -d affected
 function bootstrap_emerge() {
 	local NAME="${1}"
 	docker exec -it "${NAME}" \
@@ -118,37 +124,37 @@ function bootstrap_emerge() {
 
 function bootstrap_package_keywords() {
 	local NAME="${1}"
-	local FILEPATH="${2}"
-	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.keywords/"${NAME}"
+	bootstrap_shell "${1}" -c \
+		"cat > /etc/portage/package.keywords/${NAME}"
 }
 
 function bootstrap_package_mask() {
 	local NAME="${1}"
-	local FILEPATH="${2}"
-	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.mask/"${NAME}"
+	bootstrap_shell "${1}" -c \
+		"cat > /etc/portage/package.mask/${NAME}"
 }
 
 function bootstrap_package_use() {
 	local NAME="${1}"
-	local FILEPATH="${2}"
-	docker cp "${FILEPATH}" "${NAME}":/etc/portage/package.use/"${NAME}"
+	bootstrap_shell "${1}" -c \
+		"cat > /etc/portage/package.use/${NAME}"
 }
 
 function bootstrap_shell() {
 	local NAME="${1}"
 	if [ -t 0 ]; then
-		docker exec -i "${NAME}" /bin/bash "${@:2}"
+		docker exec -it "${NAME}" /bin/bash "${@:2}"
 	else
-		docker exec -i "${NAME}" /bin/bash "${@:2}" -c "$(cat -)"
+		docker exec -i "${NAME}" /bin/bash "${@:2}"
 	fi
 }
 
 function bootstrap_shell_chroot() {
 	local NAME="${1}"
 	if [ -t 0 ]; then
-		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}"
+		docker exec -it "${NAME}" chroot /build /bin/bash "${@:2}"
 	else
-		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}" -c "$(cat -)"
+		docker exec -i "${NAME}" chroot /build /bin/bash "${@:2}"
 	fi
 }
 
@@ -197,6 +203,9 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 		build)
 			bootstrap_build "${@:2}"
 			;;
+		chroot)
+			bootstrap_shell_chroot "${NAME}"
+			;;
 		create)
 			bootstrap_create "${@:2}"
 			;;
@@ -206,7 +215,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 		portage)
 			case ${2:-} in
 				down)
-					docker rm "${NAME_PORTAGE}"
+					docker volume rm "${VOLUME_PORTAGE}"
 					docker volume rm "${VOLUME_DISTFILES}"
 					docker volume rm "${VOLUME_PACKAGES}"
 					;;
@@ -214,7 +223,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 					DURATION="${3:-3w}"
 					docker run -i --rm \
 						-h "${NAME_PORTAGE}" \
-						--volumes-from "${NAME_PORTAGE}":ro \
+						-v "${VOLUME_PORTAGE}":/usr/portage:ro \
 						-v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
 						-v "${VOLUME_PACKAGES}":/usr/portage/packages \
 						"${IMAGE_GENTOO}" /bin/bash <<-EOM
@@ -236,30 +245,31 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 					;;
 				pull)
 					docker pull "${IMAGE_GENTOO}"
-					docker pull "${IMAGE_PORTAGE}"
-					;;
-				reload)
-					if docker_container_exists "${NAME_PORTAGE}"; then
-						docker rm "${NAME_PORTAGE}"
-					fi
-					docker create --name "${NAME_PORTAGE}" "${IMAGE_PORTAGE}"
 					;;
 				shell)
 					docker run -it --rm \
 						-h "${NAME_PORTAGE}" \
-						--volumes-from "${NAME_PORTAGE}" \
+						-v "${VOLUME_PORTAGE}":/usr/portage:ro \
 						-v "${VOLUME_DISTFILES}":/usr/portage/distfiles \
 						-v "${VOLUME_PACKAGES}":/usr/portage/packages \
 						"${IMAGE_GENTOO}" /bin/bash
 					;;
+				sync)
+					docker run -it --rm \
+						-h "${NAME_PORTAGE}" \
+						-v "${VOLUME_PORTAGE}":/usr/portage \
+						-v "${VOLUME_DISTFILES}":/usr/portage/distfiles:ro \
+						-v "${VOLUME_PACKAGES}":/usr/portage/packages:ro \
+						"${IMAGE_GENTOO}" emerge --sync "${@:3}"
+					;;
 				up)
-					docker create --name "${NAME_PORTAGE}" "${IMAGE_PORTAGE}"
+					docker volume create --name "${VOLUME_PORTAGE}"
 					docker volume create --name "${VOLUME_DISTFILES}"
 					docker volume create --name "${VOLUME_PACKAGES}"
 					;;
 				*)
-					echo "$0 portage [ down | eclean | export | import | pull | " \
-							 "reload | shell | up ]"
+					echo "$0 portage [ down | eclean | export | import | reload |" \
+							 "shell | sync | up ]"
 					;;
 			esac
 			;;
@@ -267,7 +277,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 			bootstrap_shell "${@:2}"
 			;;
 		*)
-			echo "$0 [ build | create | emerge | portage | shell ]"
+			echo "$0 [ build | chroot | create | emerge | portage | shell ]"
 			;;
 	esac
 fi

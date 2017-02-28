@@ -1,7 +1,0 @@
-dev-python/cython ~amd64
-sci-libs/atlas ~amd64
-sci-libs/scikits ~amd64
-sci-libs/scikits_image ~amd64
-sci-libs/scikits_learn ~amd64
-sci-libs/scikits_optimization ~amd64
-sci-libs/scikits_timeseries ~amd64
