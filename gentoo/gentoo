@@ -49,6 +49,18 @@ run)
 		-w /root \
 		"${REPO}":"${TAG}" /bin/zsh
 	;;
+vim)
+	docker run -it --rm \
+		-h "${NAME}" \
+		--log-driver=none \
+		--user "$(id -u)":"$(id -g)" \
+		-e "HOME=${HOME}" \
+		-v "$(volumepath ${HOME})"/.vim:"${HOME}"/.vim \
+		-v "$(volumepath ${HOME})"/.vimrc:"${HOME}"/.vimrc \
+		-v "$(volumepath $(pwd))":/work \
+		-w "/work" \
+		"${REPO}":"${TAG}" vim "${@:2}"
+	;;
 *)
 	echo "usage: $0 [ build | promote | pull | run ]" 1>&2
 	exit 1

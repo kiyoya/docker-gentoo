@@ -122,6 +122,14 @@ function bootstrap_emerge() {
 		--quiet "${@:2}"
 }
 
+# TODO(kiyoya): Add a command to check affected packages by GLSA.
+#               glsa-check -t all && glsa-check -d affected
+function bootstrap_emerge_host() {
+	local NAME="${1}"
+	docker exec -it "${NAME}" \
+		emerge --buildpkg --usepkg --quiet "${@:2}"
+}
+
 function bootstrap_package_keywords() {
 	local NAME="${1}"
 	bootstrap_shell "${1}" -c \
@@ -204,13 +212,16 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 			bootstrap_build "${@:2}"
 			;;
 		chroot)
-			bootstrap_shell_chroot "${NAME}"
+			bootstrap_shell_chroot "${@:2}"
 			;;
 		create)
 			bootstrap_create "${@:2}"
 			;;
 		emerge)
 			bootstrap_emerge "${@:2}"
+			;;
+		emerge_host)
+			bootstrap_emerge_host "${@:2}"
 			;;
 		portage)
 			case ${2:-} in
@@ -277,7 +288,8 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 			bootstrap_shell "${@:2}"
 			;;
 		*)
-			echo "$0 [ build | chroot | create | emerge | portage | shell ]"
+			echo "$0 [ build | chroot | create | emerge | emerge_host | portage | " \
+				"shell ]"
 			;;
 	esac
 fi
