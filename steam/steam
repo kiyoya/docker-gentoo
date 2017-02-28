@@ -1,0 +1,61 @@
+#!/bin/bash
+# @(#) Script to maintain gentoo-based docker image for steam.
+set -eu
+
+source "$(dirname $0)"/../bootstrap.sh
+
+DATADIR="${DATADIR:-/var/data/steam}"
+STEAM_URI="${STEAM_URI:-https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz}"
+
+NAME="${NAME:-steam}"
+REPO="${REPO:-kiyoya/steam}"
+TAG="${TAG:-latest}"
+
+BUILD_TAG="${BUILD_TAG:-devel}"
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"-"${BUILD_TAG}"}"
+
+RUN_UID="${RUN_UID:-1101}"
+RUN_GID="${RUN_GID:-1101}"
+
+PACKAGES="
+	sys-devel/gcc[cxx,multilib]"
+
+
+function run_steamcmd() {
+	docker run -it --rm \
+		--user "${RUN_UID}":"${RUN_GID}" \
+		-v "${DATADIR}":/steam/Steam \
+		-w /steam \
+		"${REPO}":"${TAG}" \
+		./steamcmd.sh "${@}"
+}
+
+case "${1:-}" in
+build)
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_emerge "${BUILD_NAME}" --update ${PACKAGES}
+	bootstrap_shell "${BUILD_NAME}" <<-EOM
+		set -eu
+		mkdir /build/steam
+		cd /build/steam
+		wget -O - "${STEAM_URI}" | tar zxvf -
+		chown -R "${RUN_UID}":"${RUN_GID}" /build/steam
+	EOM
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
+	;;
+help)
+	echo "usage: $0 [ build | help | promote | pull | * ]"
+	run_steamcmd --help
+	;;
+promote)
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
+pull)
+	docker pull "${REPO}":"${TAG}"
+	;;
+run)
+	run_steamcmd "${@:2}"
+	;;
+*)
+	echo "usage: $0 [ build | promote | pull | run ]"
+esac
