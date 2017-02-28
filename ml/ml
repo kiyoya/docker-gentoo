@@ -1,5 +1,6 @@
 #!/bin/bash
 # @(#) Script to maintain gentoo-based docker image for machine learning.
+set -eu
 
 ROOT="${ROOT:-$(dirname $0)}"
 source "${ROOT}"/../bootstrap.sh
@@ -7,52 +8,55 @@ source "${ROOT}"/../bootstrap.sh
 NAME="${NAME:-ml}"
 REPO="${REPO:-kiyoya/ml}"
 TAG="${TAG:-latest}"
+
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"}"
 BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
 
 PACKAGES="
-  =dev-lang/python-2*
-  =dev-lang/python-3*
-  dev-python/matplotlib
-  dev-python/nltk
-  dev-python/numpy
-  dev-python/pip
-  sci-libs/atlas
-  sci-libs/scikits_image
-  sci-libs/scikits_learn
-  sci-libs/scikits_optimization
-  sci-libs/scikits_timeseries
-  sci-libs/scipy"
+	=dev-lang/python-2*
+	=dev-lang/python-3*
+	dev-python/matplotlib
+	dev-python/nltk
+	dev-python/numpy
+	dev-python/pip
+	sci-libs/atlas
+	sci-libs/scikits_image
+	sci-libs/scikits_learn
+	sci-libs/scikits_optimization
+	sci-libs/scikits_timeseries
+	sci-libs/scipy"
 
 
-case "${1}" in
+case "${1:-}" in
 build)
-  bootstrap_create "${NAME}"
-  bootstrap_shell "${NAME}" \
-    -c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
-  bootstrap_package_keywords "${NAME}" "${ROOT}"/package.keywords
-  bootstrap_package_use "${NAME}" "${ROOT}"/package.use
-  bootstrap_emerge "${NAME}" --update --deep --newuse ${PACKAGES}
-  bootstrap_shell_chroot "${NAME}" <<EOM
-    set -eu
-    pip install chainer
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_shell "${BUILD_NAME}" \
+		-c 'echo "USE=\"${USE} lapack\"" >> /etc/portage/make.conf'
+	bootstrap_package_keywords "${BUILD_NAME}" "${ROOT}"/package.keywords
+	bootstrap_package_use "${BUILD_NAME}" "${ROOT}"/package.use
+	bootstrap_emerge "${BUILD_NAME}" --update --deep --newuse ${PACKAGES}
+	bootstrap_shell_chroot "${BUILD_NAME}" <<EOM
+		set -eu
+		pip install chainer
 EOM
-  bootstrap_build "${NAME}" "${REPO}":"${BUILD_TAG}"
-  ;;
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
+	;;
 promote)
-  docker_promote "${REPO}":"${BUILD_TAG}"
-  ;;
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
 pull)
-  docker pull "${REPO}":"${TAG}"
-  ;;
+	docker pull "${REPO}":"${TAG}"
+	;;
 run)
-  docker run -it --rm \
-    -h "${NAME}" \
-    --log-driver=none \
-    --user "$(id -u)":"$(id -g)" \
-    -v "$(volpath $(pwd))":/root \
-    -w /root \
-    "${REPO}":"${TAG}" /bin/bash
-  ;;
+	docker run -it --rm \
+		-h "${NAME}" \
+		--log-driver=none \
+		--user "$(id -u)":"$(id -g)" \
+		-v "$(volpath $(pwd))":/root \
+		-w /root \
+		"${REPO}":"${TAG}" /bin/bash
+	;;
 *)
-  echo "usage: $0 [ build | promote | pull | run ]"
+	echo "usage: $0 [ build | promote | pull | run ]" 1>&2
+	exit 1
 esac
