@@ -8,8 +8,8 @@ NAME="${NAME:-ml}"
 REPO="${REPO:-kiyoya/ml}"
 TAG="${TAG:-latest}"
 
-BUILD_NAME="${BUILD_NAME:-build-"${NAME}"}"
-BUILD_TAG="${BUILD_TAG:-$(date +%Y%m%d)}"
+BUILD_TAG="${BUILD_TAG:-devel}"
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"-"${BUILD_TAG}"}"
 
 PACKAGES="
 	=dev-lang/python-2*

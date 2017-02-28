@@ -1,6 +1,5 @@
 #!/bin/bash
 # @(#) Script to build and maintain gentoo-based docker images.
-
 set -eu
 
 IMAGE_GENTOO="${IMAGE_GENTOO:-gentoo/stage3-amd64}"
@@ -172,8 +171,9 @@ function docker_container_exists() {
 }
 
 function docker_image_exists() {
-	local REPO="${1}"
-	local TAG="${2}"
+	local IMAGE="${1}"
+	local REPO="$(echo "${IMAGE}" | cut -d : -f 1)"
+	local TAG="$(echo "${IMAGE}" | cut -d : -f 2)"
 	docker images "${REPO}" | awk '{print $2}' | tail -n +2 | grep -q ^"${TAG}"$
 }
 
@@ -192,8 +192,11 @@ function docker_promote() {
 	local IMAGE="${1}"
 	local REPO="$(echo ${IMAGE} | cut -d : -f 1)"
 	log "Promoting ${IMAGE} ..."
+	if docker_image_exists "${REPO}":latest; then
+		docker tag "${REPO}":latest "${REPO}":previous
+	fi
 	docker tag "${IMAGE}" "${REPO}":latest
-	docker push "${IMAGE}"
+	docker push "${REPO}":previous
 	docker push "${REPO}":latest
 }
 
