@@ -27,7 +27,8 @@ build)
 	bootstrap_create "${BUILD_NAME}"
 	bootstrap_emerge "${BUILD_NAME}" ${PACKAGES}
 	docker cp \
-		"${ROOT}"/docker-entrypoint.sh "${BUILD_NAME}":/build/docker-entrypoint.sh
+		"$(dirname $0)"/docker-entrypoint.sh \
+		"${BUILD_NAME}":/build/docker-entrypoint.sh
 	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}" \
 		-c "VOLUME /etc/openvpn" \
 		-c "EXPOSE 1194" \
