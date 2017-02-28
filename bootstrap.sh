@@ -74,12 +74,8 @@ function bootstrap_build() {
 		EOM
 		bootstrap_shell_chroot "${NAME}" -c ldconfig
 	fi
-	# TODO(kiyoya): Piping a tar archive does not work on msys.
-	# docker exec "${NAME}" tar -cf - -C /build . \
-	#	 | docker import "${@:3}" - "${IMAGE}"
-	docker exec "${NAME}" tar -cf - -C /build . > /tmp/"${NAME}".tar
-	docker import "${@:3}" $(volumepath /tmp/"${NAME}".tar) "${IMAGE}"
-	rm -f /tmp/"${NAME}".tar
+	docker exec "${NAME}" tar -cf - -C /build . | \
+		docker import "${@:3}" - "${IMAGE}"
 
 	docker stop "${NAME}"
 	docker rm "${NAME}"
@@ -194,9 +190,9 @@ function docker_promote() {
 	log "Promoting ${IMAGE} ..."
 	if docker_image_exists "${REPO}":latest; then
 		docker tag "${REPO}":latest "${REPO}":previous
+		docker push "${REPO}":previous
 	fi
 	docker tag "${IMAGE}" "${REPO}":latest
-	docker push "${REPO}":previous
 	docker push "${REPO}":latest
 }
 
