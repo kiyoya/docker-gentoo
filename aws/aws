@@ -1,0 +1,48 @@
+#!/bin/bash
+# @(#) Script to maintain the AWS container.
+set -eu
+
+source "$(dirname $0)"/../bootstrap.sh
+
+DATADIR="${DATADIR:-${HOME}/.aws}"
+
+NAME="${NAME:-aws}"
+REPO="${IMAGE:-kiyoya/aws}"
+TAG="${TAG:-latest}"
+
+BUILD_TAG="${BUILD_TAG:-devel}"
+BUILD_NAME="${BUILD_NAME:-build-"${NAME}"-"${BUILD_TAG}"}"
+
+PACKAGES="
+		=dev-lang/python-2*
+		dev-python/pip
+		sys-apps/groff"
+
+
+case "${1:-}" in
+build)
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_emerge "${BUILD_NAME}" ${PACKAGES}
+	bootstrap_shell_chroot "${BUILD_NAME}" <<-EOM
+		set -eu
+		pip install awscli boto
+	EOM
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
+	;;
+help)
+	echo "usage: $0 [ build | help | promote | * ]"
+	$0 help
+	;;
+promote)
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
+*)
+	docker run -it --rm \
+		-h "${NAME}" \
+		--log-driver none \
+		--user "$(id -u)":"$(id -g)" \
+		-v "$(volumepath "${DATADIR}")":/.aws \
+		-w /.aws \
+		"${REPO}":"${TAG}" aws "${@:2}"
+	;;
+esac
