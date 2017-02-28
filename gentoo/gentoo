@@ -45,7 +45,7 @@ run)
 		-h "${NAME}" \
 		--log-driver=none \
 		--user "$(id -u)":"$(id -g)" \
-		-v "$(volpath $(pwd))":/root \
+		-v "$(volumepath $(pwd))":/root \
 		-w /root \
 		"${REPO}":"${TAG}" /bin/zsh
 	;;
