@@ -5,6 +5,7 @@ set -eu
 source "$(dirname $0)"/../bootstrap.sh
 
 DATADIR="${DATADIR:-/var/data/steam}"
+NETWORK="${NETWORK:-steam}"
 
 NAME="${NAME:-steam}"
 REPO="${REPO:-kiyoya/steam}"
@@ -26,6 +27,8 @@ PACKAGES="
 
 function run_steamcmd() {
 	docker run -it --rm \
+		-h "${NAME}" \
+		--network "${NETWORK}" \
 		--user "${RUN_UID}":"${RUN_GID}" \
 		-v "${DATADIR}":/steam \
 		-w /steam \
