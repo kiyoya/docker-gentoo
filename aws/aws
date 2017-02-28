@@ -23,11 +23,10 @@ case "${1:-}" in
 aws)
 	docker run -it --rm \
 		-h "${NAME}" \
-		-e HOME="${HOME}" \
 		--log-driver none \
 		--user "$(id -u)":"$(id -g)" \
-		-v "$(volumepath "${DATADIR}")":"${HOME}"/.aws \
-		-w "${HOME}" \
+		-v "$(volumepath "${DATADIR}")":/.aws \
+		-w /.aws \
 		"${REPO}":"${TAG}" aws "${@:2}"
 	;;
 build)
@@ -45,11 +44,10 @@ promote)
 run)
 	docker run -i --rm \
 		-h "${NAME}" \
-		-e HOME="${HOME}" \
 		--log-driver none \
 		--user "$(id -u)":"$(id -g)" \
-		-v "$(volumepath "${DATADIR}")":"${HOME}"/.aws \
-		-w "${HOME}" \
+		-v "$(volumepath "${DATADIR}")":/.aws \
+		-w /.aws \
 		"${REPO}":"${TAG}" "${@:2}"
 	;;
 *)
