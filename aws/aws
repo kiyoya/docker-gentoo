@@ -41,7 +41,7 @@ build)
 promote)
 	docker_promote "${REPO}":"${BUILD_TAG}"
 	;;
-shell)
+run)
 	docker run -it --rm \
 		-h "${NAME}" \
 		--log-driver none \
@@ -49,10 +49,10 @@ shell)
 		-v "$(volumepath "${DATADIR}")":/.aws \
 		-v "$(volumepath "$(pwd)")":/work \
 		-w /work \
-		"${REPO}":"${TAG}" /bin/bash
+		"${REPO}":"${TAG}" "${@:2}"
 	;;
 *)
-	echo "usage: $0 [ aws | build | promote | shell ]" 1>&2
+	echo "usage: $0 [ aws | build | promote | run ]" 1>&2
 	exit 1
 	;;
 esac
