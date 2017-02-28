@@ -98,8 +98,8 @@ function bootstrap_create() {
 		"${IMAGE_GENTOO}" /bin/bash
 	docker exec -i "${NAME}" \
 		mkdir -p /etc/portage/package.keywords \
-						 /etc/portage/package.mask \
-						 /etc/portage/package.use
+		         /etc/portage/package.mask \
+		         /etc/portage/package.use
 	bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
 	bootstrap_shell "${NAME}" <<-EOM
 		set -eu
