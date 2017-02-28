@@ -4,7 +4,7 @@ set -eu
 
 source "$(dirname $0)"/../bootstrap.sh
 
-DATADIR="${DATADIR:-${HOME}/.aws}"
+DATADIR="${DATADIR:-${HOME:-}/.aws}"
 
 NAME="${NAME:-aws}"
 REPO="${IMAGE:-kiyoya/aws}"
