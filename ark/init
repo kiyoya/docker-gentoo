@@ -28,7 +28,7 @@ class ArkServer(object):
         vpc_address = self._ec2.VpcAddress(ALLOCATION_ID)
         if vpc_address.instance_id == self._instance.id:
             return
-        vpc_address.associate(InstanceId=instance.id)
+        vpc_address.associate(InstanceId=self._instance.id)
 
     def check_volume(self):
         volume = self._get_or_create_volume()
