@@ -20,23 +20,7 @@ PACKAGES="
 
 
 case "${1:-}" in
-build)
-	bootstrap_create "${BUILD_NAME}"
-	bootstrap_emerge "${BUILD_NAME}" ${PACKAGES}
-	bootstrap_shell_chroot "${BUILD_NAME}" <<-EOM
-		set -eu
-		pip install awscli boto
-	EOM
-	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
-	;;
-help)
-	echo "usage: $0 [ build | help | promote | * ]"
-	$0 help
-	;;
-promote)
-	docker_promote "${REPO}":"${BUILD_TAG}"
-	;;
-*)
+aws)
 	docker run -it --rm \
 		-h "${NAME}" \
 		--log-driver none \
@@ -44,5 +28,31 @@ promote)
 		-v "$(volumepath "${DATADIR}")":/.aws \
 		-w /.aws \
 		"${REPO}":"${TAG}" aws "${@:2}"
+	;;
+build)
+	bootstrap_create "${BUILD_NAME}"
+	bootstrap_emerge "${BUILD_NAME}" --update ${PACKAGES}
+	bootstrap_shell_chroot "${BUILD_NAME}" <<-EOM
+		set -eu
+		pip install awscli boto3
+	EOM
+	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
+	;;
+promote)
+	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
+shell)
+	docker run -it --rm \
+		-h "${NAME}" \
+		--log-driver none \
+		--user "$(id -u)":"$(id -g)" \
+		-v "$(volumepath "${DATADIR}")":/.aws \
+		-v "$(volumepath "$(pwd)")":/work \
+		-w /work \
+		"${REPO}":"${TAG}" /bin/bash
+	;;
+*)
+	echo "usage: $0 [ aws | build | promote | shell ]" 1>&2
+	exit 1
 	;;
 esac
