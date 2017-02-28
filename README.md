@@ -1,6 +1,6 @@
 # docker-gentoo
 
-Scripts to build and maintain gentoo-based docker images.
+Scripts to build and maintain Gentoo-based docker images.
 
 https://hub.docker.com/u/kiyoya/
 
@@ -9,29 +9,27 @@ https://hub.docker.com/u/kiyoya/
 ```shell
 ./bootstrap.sh portage pull
 ./bootstrap.sh portage up
+./bootstrap.sh portage sync
 ```
 
-## Biweekly update routine
+## Building a new image
 
 ```shell
 ./bootstrap.sh portage pull
-./bootstrap.sh portage reload  # If there are updates at portage.
+./bootstrap.sh portage sync
 
-# kiyoya/gentoo
-./gentoo/gentoo build
-./gentoo/gentoo promote
+# Prepare a new image.
+./bootstrap.sh create "${NAME}"
 
-# kiyoya/ml
-./ml/ml build
-./ml/ml promote
+# Emerge in the new image.
+./bootstrap.sh emerge "${NAME}" [ package atoms here ]
 
-# kiyoya/murmur
-./murmur/murmur build
-./murmur/murmur promote
+# Run commands in the new image.
+./bootstrap.sh chroot "${NAME}"
 
-# kiyoya/vpn
-./vpn/vpn build
-./vpn/vpn promote
+# Finish and build the new image.
+./bootstrap.sh build "${NAME}"
 
+# Clean-up: Delete outdated files from packages/distfiles.
 ./bootstrap.sh portage eclean
 ```
