@@ -13,11 +13,40 @@ TAG="${TAG:-latest}"
 BUILD_TAG="${BUILD_TAG:-devel}"
 BUILD_NAME="${BUILD_NAME:-build-"${NAME}"-"${BUILD_TAG}"}"
 
+SSH_HOST_KEY_BUCKET="${SSH_HOST_KEY_BUCKET:-kiyoya-tokyo}"
+SSH_HOST_KEY_FOLDER="${SSH_HOST_KEY_FOLDER:-ssh_host_keys}"
+
 PACKAGES="
 		=dev-lang/python-2*
 		dev-python/pip
 		sys-apps/groff"
 
+function generate_ssh_host_key() {
+	local KEYDIR="${1}"
+	local TYPE="${2}"
+	local KEYPATH="${KEYDIR}"/ssh_host_"${TYPE}"_key
+	ssh-keygen -q -t "${TYPE}" -N "" -C "" -f "${KEYPATH}"
+}
+
+function generate_ssh_host_keys() {
+	local KEYDIR="$(mktemp -d /tmp/generate_ssh_host_key.XXXXXX)"
+	local KEYHOST="${1}"
+	local S3PATH=s3://"${SSH_HOST_KEY_BUCKET}"/"${SSH_HOST_KEY_FOLDER}"/"${KEYHOST}"
+	echo Temporary working directory: "${KEYDIR}"
+	generate_ssh_host_key "${KEYDIR}" ecdsa
+	generate_ssh_host_key "${KEYDIR}" dsa
+	generate_ssh_host_key "${KEYDIR}" rsa
+	docker run -it --rm \
+		-h "${NAME}" \
+		--log-driver none \
+		--user "$(id -u)":"$(id -g)" \
+		-v "$(volumepath "${DATADIR}")":/.aws \
+		-v "$(volumepath "${KEYDIR}")":/work:ro \
+		-w /work \
+		"${REPO}":"${TAG}" \
+		aws s3 sync /work/ "${S3PATH}"
+	rm -rf "${KEYDIR}"
+}
 
 case "${1:-}" in
 aws)
@@ -38,8 +67,14 @@ build)
 	EOM
 	bootstrap_build "${BUILD_NAME}" "${REPO}":"${BUILD_TAG}"
 	;;
+generate_ssh_host_keys)
+	generate_ssh_host_keys "${2}"
+	;;
 promote)
 	docker_promote "${REPO}":"${BUILD_TAG}"
+	;;
+pull)
+	docker pull "${REPO}":"${TAG}"
 	;;
 run)
 	docker run -i --rm \
@@ -51,7 +86,7 @@ run)
 		"${REPO}":"${TAG}" "${@:2}"
 	;;
 *)
-	echo "usage: $0 [ aws | build | promote | run ]" 1>&2
+	echo "usage: $0 [ aws | build | generate_ssh_host_keys | promote | pull | run ]" 1>&2
 	exit 1
 	;;
 esac
