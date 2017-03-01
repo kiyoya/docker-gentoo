@@ -36,23 +36,30 @@ class ArkServer(object):
     def check_volume(self, volume_id, device_name):
         volume = self._ec2.Volume(volume_id)
         for attachment in volume.attachments:
+            # TODO(kiyoya): It does not handle a detaching volume.
             if attachment['InstanceId'] == self._instance.id:
                 break
         else:
             if volume.attachments:
-                for i in range(6):
-                    time.sleep(10)
+                for i in range(12):
+                    time.sleep(5)
                     if not volume.attachments:
                         break
             volume.attach_to_instance(
                     InstanceId=self._instance.id,
                     Device=device_name)
-        for i in range(6):
-            if volume.state == 'attached' or volume.state == 'in-use':
-                return
-            if volume.state != 'attaching':
-                raise ValueError('%s: %s' % (volume, volume.state))
-            time.sleep(10)
+        for i in range(12):
+            volume = self._ec2.Volume(volume_id)
+            for attachment in volume.attachments:
+                if attachment['InstanceId'] == self._instance_id:
+                    if attachment['State'] == 'attached':
+                        return
+                    break
+            else:
+                raise Exception('Volume %s is not attached.' % volume)
+            time.sleep(5)
+        else:
+            raise Exception('Volume %s cannot be attached.' % volume)
 
 
 if __name__ == '__main__':
