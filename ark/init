@@ -1,12 +1,9 @@
 #!/usr/bin/env python3
 
 import logging
-import os
-from urllib.request import urlopen
 
 import boto3
 
-ALLOCATION_ID = 'eipalloc-e646a382'
 REGION_NAME = 'ap-northeast-1'
 
 
@@ -19,47 +16,33 @@ class ArkServer(object):
             instance_id = f.read().strip()
             self._instance = self._ec2.Instance(instance_id)
 
-    def check_address(self):
-        vpc_address = self._ec2.VpcAddress(ALLOCATION_ID)
+    def process_tags(self):
+        for tag in self._instance.tags:
+            if tag['Key'] == 'aws:ec2:allocation-id':
+                allocation_id = tag['Value']
+                self.check_allocation(allocation_id)
+            elif tag['Key'].startswith('aws:ec2:block-device:'):
+                device_name = tag['Key'].replace('aws:ec2:block-device:', '/dev/')
+                volume_id = tag['Value']
+                self.check_volume(volume_id, device_name)
+
+    def check_allocation(self, allocation_id):
+        vpc_address = self._ec2.VpcAddress(allocation_id)
         if vpc_address.instance_id == self._instance.id:
             return
         vpc_address.associate(InstanceId=self._instance.id)
 
-    def check_volume(self):
-        volume = self._get_or_create_volume()
-        attachments = volume.attachments
-        if attachments:
-            attachment = attachments[0]
+    def check_volume(self, volume_id, device_name):
+        volume = self._ec2.Volume(volume_id)
+        for attachment in volume.attachments:
             if attachment['InstanceId'] == self._instance.id:
                 return
         volume.attach_to_instance(
                 InstanceId=self._instance.id,
-                Device='/dev/sdf')
-
-    def _get_name(self):
-        for tag in self._instance.tags:
-            if tag['Key'] == 'Name':
-                return tag['Value']
-        raise ValueError('Name is not set')
-
-    def _get_or_create_volume(self):
-        name = self._get_name()
-        zone_id = self._instance.placement['AvailabilityZone']
-        paginator = self._client.get_paginator('describe_volumes')
-        seq = iter(paginator.paginate(
-            Filters=[
-                { 'Name': 'availability-zone', 'Values': [ zone_id ] },
-                { 'Name': 'tag:Name', 'Values': [ name ] },
-            ],
-            PaginationConfig={ 'MaxItems': 1 }))
-        response = next(seq)
-        # TODO(kiyoya): Create a volume if unavailable.
-        volume = response['Volumes'][0]
-        return self._ec2.Volume(volume['VolumeId'])
+                Device=device_name)
 
 
 if __name__ == '__main__':
     ark = ArkServer()
-    ark.check_address()
-    ark.check_volume()
     print('Instance: %s' % ark._instance)
+    ark.process_tags()
