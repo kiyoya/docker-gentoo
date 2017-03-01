@@ -17,10 +17,10 @@ docker run -d \
 	--name "${NAME}" \
 	--restart always \
 	--user "${RUN_UID}":"${RUN_GID}" \
-	-v "${DATADIR}":/steam \
-	-w /steam \
+	-v "${DATADIR}":/steam/Steam \
+	-w /steam/Steam/ShooterGame \
 	"${REPO}":"${TAG}" \
-	/steam/ShooterGame/ShooterGameServer TheIsland?listen \
+	./Binaries/Linux/ShooterGameServer TheIsland?listen \
 		-log \
 		-nosteamclient \
 		-server
