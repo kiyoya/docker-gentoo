@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+
+import base64
+import logging
+import time
+
+import boto3
+
+NAME = 'ark.clan-vst.com'
+
+ALLOCATION_ID = 'eipalloc-e646a382'
+GROUP_ID = 'sg-c1097ba6'
+# http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
+IMAGE_ID = 'ami-c393d6a4'
+KEY_NAME = 'cardno:000604914195'
+# SUBNET_ID = 'subnet-0908dd7e'  # ap-northeast-1b
+SUBNET_ID = 'subnet-2e608e77'  # ap-northeast-1c
+VOLUME_ID = 'vol-0d04a2d4d849c1897'
+ZONE_ID = 'ap-northeast-1c'
+
+FLEET_ROLE_ARN = 'arn:aws:iam::344130985175:role/aws-ec2-spot-fleet-role'
+INSTANCE_PROFILE_ARN = 'arn:aws:iam::344130985175:instance-profile/aws-ec2-full-access-role'
+
+S3_KEY_BUCKET = 'https://s3-ap-northeast-1.amazonaws.com/kiyoya-tokyo/ssh_host_keys/' + NAME
+
+# http://cloudinit.readthedocs.io/en/latest/topics/boot.html
+USERDATA = """#cloud-config
+
+bootcmd:
+  - curl {s3_key_bucket}/ssh_host_dsa_key > /etc/ssh/ssh_host_dsa_key
+  - curl {s3_key_bucket}/ssh_host_dsa_key.pub > /etc/ssh/ssh_host_dsa_key.pub
+  - curl {s3_key_bucket}/ssh_host_ecdsa_key > /etc/ssh/ssh_host_ecdsa_key
+  - curl {s3_key_bucket}/ssh_host_ecdsa_key.pub > /etc/ssh/ssh_host_ecdsa_key.pub
+  - curl {s3_key_bucket}/ssh_host_rsa > /etc/ssh/ssh_host_rsa_key
+  - curl {s3_key_bucket}/ssh_host_rsa.pub > /etc/ssh/ssh_host_rsa_key.pub
+
+ssh_deletekeys: false
+
+repo_update: true
+repo_upgrade: all
+
+packages:
+  - aws-cli
+  - git
+  - python27-boto3
+  - vim
+
+write_files:
+  - path: /var/lib/cloud/scripts/per-once/init.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/bin/sh
+      set -eu
+      cat >> /etc/sysctl.conf <<EOM
+      fs.file-max=100000
+      EOM
+      sysctl -p /etc/sysctl.conf
+      cat >> /etc/security/limits.conf <<EOM
+      *  soft    nofile  1000000
+      *  hard    nofile  1000000
+      EOM
+      cat >> /etc/pam.d/common-session <<EOM
+      session required pam_limits.so
+      EOM
+      git clone https://github.com/kiyoya/docker-gentoo.git /opt/docker-gentoo
+      /opt/docker-gentoo/ark/init
+      mkdir -p /var/data/steam
+      cat >> /etc/fstab <<EOM
+      /dev/xvdf /var/data/steam ext4  defaults,noatime  0 0
+      EOM
+      mount /var/data/steam
+      docker network create --driver bridge steam
+
+runcmd:
+  - git -C /opt/docker-gentoo pull origin master
+  - docker stop ark
+  - docker rm ark
+  - /opt/docker-gentoo/steam/steam pull
+  - /opt/docker-gentoo/steam/steam app_update 376030
+  - /opt/docker-gentoo/ark/run
+""".format(s3_key_bucket=S3_KEY_BUCKET)
+
+def read_userdata(filename):
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+    with open(filepath) as f:
+        userdata = f.read()
+        return base64.b64encode(userdata).decode('ascii')
+
+
+class ArkServer(object):
+
+    def __init__(self):
+        self._ec2 = boto3.resource('ec2')
+        self._client = boto3.client('ec2')
+        self._instance = self._get_instance()
+
+    def launch_if_unavailable(self):
+        if self._instance:
+            return
+        self._instance = self._launch()
+
+    def _get_instance(self):
+        paginator = self._client.get_paginator('describe_instances')
+        seq = iter(paginator.paginate(
+            Filters=[
+                { 'Name': 'availability-zone', 'Values': [ ZONE_ID ] },
+                { 'Name': 'instance-state-name', 'Values': [ 'pending', 'running' ] },
+                { 'Name': 'tag:Name', 'Values': [ NAME ] },
+            ],
+            PaginationConfig={ 'MaxItems': 1 }))
+        response = next(seq)
+        if response['Reservations']:
+            reservation = response['Reservations'][0]
+            instance = reservation['Instances'][0]
+            logging.info('Instance is running: %s' % instance)
+            return self._ec2.Instance(instance['InstanceId'])
+
+        return None
+
+    def _get_spot_fleet_instance(self, spot_fleet_request_id):
+        response = self._client.describe_spot_fleet_instances(
+                SpotFleetRequestId=spot_fleet_request_id,
+                MaxResults=1)
+        instance = response['ActiveInstances'][0]
+        return self._ec2.Instance(instance['InstanceId'])
+
+    def _is_spot_fleet_request_fulfilled(self, spot_fleet_request_id):
+        paginator = self._client.get_paginator('describe_spot_fleet_requests')
+        seq = iter(paginator.paginate(
+                SpotFleetRequestIds=[ spot_fleet_request_id ],
+                PaginationConfig={ 'MaxItems': 1 }))
+        response = next(seq)
+        spot_fleet_request_config = response['SpotFleetRequestConfigs'][0]
+        activity_status = spot_fleet_request_config.get('ActivityStatus', 'pending_fulfillment')
+        if activity_status == 'pending_fulfillment':
+            return False
+        elif activity_status == 'fulfilled':
+            return True
+        else:
+            raise RuntimeError('%s is %s' % (spot_fleet_request_id, activity_status))
+
+    def _launch(self):
+        logging.warning('Launching a new instance...')
+        response = self._client.request_spot_fleet(
+                SpotFleetRequestConfig={
+                    'AllocationStrategy': 'lowestPrice',
+                    'IamFleetRole': FLEET_ROLE_ARN,
+                    'SpotPrice': '0.139',
+                    'TargetCapacity': 1,
+                    'TerminateInstancesWithExpiration': False,
+                    'LaunchSpecifications': [{
+                        'EbsOptimized': True,
+                        'IamInstanceProfile': { 'Arn': INSTANCE_PROFILE_ARN },
+                        'ImageId': IMAGE_ID,
+                        'InstanceType': 'm4.large',
+                        'KeyName': KEY_NAME,
+                        'Placement': { 'AvailabilityZone': ZONE_ID },
+                        'SecurityGroups': [{ 'GroupId': GROUP_ID }],
+                        'SubnetId': SUBNET_ID,
+                        'UserData': base64.b64encode(USERDATA.encode('utf-8')).decode('ascii')
+                    }]})
+        spot_fleet_request_id = response['SpotFleetRequestId']
+        while not self._is_spot_fleet_request_fulfilled(spot_fleet_request_id):
+            time.sleep(5)
+        instance = self._get_spot_fleet_instance(spot_fleet_request_id)
+        instance.create_tags(Tags=[
+            { 'Key': 'Name', 'Value': NAME },
+            { 'Key': 'kiyoya:ec2:allocation-id', 'Value': ALLOCATION_ID },
+            { 'Key': 'kiyoya:ec2:block-device:sdf', 'Value': VOLUME_ID },
+        ])
+        return instance
+
+
+if __name__ == '__main__':
+    ark = ArkServer()
+    ark.launch_if_unavailable()
+    print('Instance: %s' % ark._instance)
