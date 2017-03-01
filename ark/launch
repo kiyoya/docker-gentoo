@@ -45,40 +45,53 @@ packages:
   - python27-boto3
   - vim
 
+bootcmd:
+  - |
+    cat >> /etc/sysctl.conf <<EOM
+    fs.file-max=100000
+    EOM
+  - |
+    cat >> /etc/security/limits.conf <<EOM
+    *  soft    nofile  1000000
+    *  hard    nofile  1000000
+    EOM
+  - |
+    cat >> /etc/pam.d/common-session <<EOM
+    session required pam_limits.so
+    EOM
+  - mkdir -p /var/data/steam
+  - |
+    cat >> /etc/fstab <<EOM
+    /dev/xvdf /var/data/steam ext4  defaults,noatime  0 0
+    EOM
+
 write_files:
   - path: /var/lib/cloud/scripts/per-once/init.sh
     permissions: '0755'
     owner: root:root
     content: |
-      #!/bin/sh
+      #!/bin/bash
       set -eu
-      cat >> /etc/sysctl.conf <<EOM
-      fs.file-max=100000
-      EOM
       sysctl -p /etc/sysctl.conf
-      cat >> /etc/security/limits.conf <<EOM
-      *  soft    nofile  1000000
-      *  hard    nofile  1000000
-      EOM
-      cat >> /etc/pam.d/common-session <<EOM
-      session required pam_limits.so
-      EOM
+      docker network create --driver bridge steam
       git clone https://github.com/kiyoya/docker-gentoo.git /opt/docker-gentoo
       /opt/docker-gentoo/ark/init
-      mkdir -p /var/data/steam
-      cat >> /etc/fstab <<EOM
-      /dev/xvdf /var/data/steam ext4  defaults,noatime  0 0
-      EOM
       mount /var/data/steam
-      docker network create --driver bridge steam
-
-runcmd:
-  - git -C /opt/docker-gentoo pull origin master
-  - docker stop ark
-  - docker rm ark
-  - /opt/docker-gentoo/steam/steam pull
-  - /opt/docker-gentoo/steam/steam app_update 376030
-  - /opt/docker-gentoo/ark/run
+  - path: /var/lib/cloud/scripts/per-boot/init.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/bin/bash
+      set -eu
+      git -C /opt/docker-gentoo pull origin master
+      /opt/docker-gentoo/ark/init
+      set +e
+      docker stop ark
+      docker rm ark
+      set -e
+      /opt/docker-gentoo/steam/steam pull
+      /opt/docker-gentoo/steam/steam app_update 376030
+      /opt/docker-gentoo/ark/run
 """.format(s3_key_bucket=S3_KEY_BUCKET)
 
 def read_userdata(filename):
