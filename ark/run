@@ -1,4 +1,7 @@
 #!/bin/bash
+set -eu
+
+ROOT="$(dirname $0)"/..
 
 DATADIR="${DATADIR:-/var/data/steam}"
 
@@ -24,3 +27,18 @@ docker run -d \
 		-log \
 		-nosteamclient \
 		-server
+
+sleep 10
+while true; do
+	"${ROOT}"/aws/spot-termination-time && break
+done
+
+RCON="${ROOT}"/ark/rcon
+"${RCON}" broadcast 'Server will be terminated in 60 seconds!'
+sleep 30
+
+"${RCON}" broadcast 'Server will be terminated in 30 seconds!'
+sleep 30
+"${RCON}" broadcast 'Saving the world and terminating...'
+"${RCON}" saveworld
+"${RCON}" doexit

@@ -102,7 +102,6 @@ write_files:
       /opt/docker-gentoo/steam/steam pull
       bash -c '/opt/docker-gentoo/steam/steam app_update 376030'
       /opt/docker-gentoo/ark/run
-      /opt/docker-gentoo/ark/monitor
 """.format(s3_key_bucket=S3_KEY_BUCKET)
 
 def read_userdata(filename):
