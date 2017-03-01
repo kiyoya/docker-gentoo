@@ -34,6 +34,7 @@ function generate_ssh_host_keys() {
 	local S3PATH=s3://"${SSH_HOST_KEY_BUCKET}"/"${SSH_HOST_KEY_FOLDER}"/"${KEYHOST}"
 	echo Temporary working directory: "${KEYDIR}"
 	generate_ssh_host_key "${KEYDIR}" ecdsa
+	generate_ssh_host_key "${KEYDIR}" ed25519
 	generate_ssh_host_key "${KEYDIR}" dsa
 	generate_ssh_host_key "${KEYDIR}" rsa
 	docker run -it --rm \
