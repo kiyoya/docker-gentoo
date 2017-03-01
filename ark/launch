@@ -10,8 +10,8 @@ NAME = 'ark.clan-vst.com'
 
 ALLOCATION_ID = 'eipalloc-e646a382'
 GROUP_ID = 'sg-c1097ba6'
-# http://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-optimized_AMI.html
-IMAGE_ID = 'ami-c393d6a4'
+# Amazon Linux AMI: https://aws.amazon.com/amazon-linux-ami/
+IMAGE_ID = 'ami-56d4ad31'
 KEY_NAME = 'cardno:000604914195'
 # SUBNET_ID = 'subnet-0908dd7e'  # ap-northeast-1b
 SUBNET_ID = 'subnet-2e608e77'  # ap-northeast-1c
@@ -21,29 +21,10 @@ ZONE_ID = 'ap-northeast-1c'
 FLEET_ROLE_ARN = 'arn:aws:iam::344130985175:role/aws-ec2-spot-fleet-role'
 INSTANCE_PROFILE_ARN = 'arn:aws:iam::344130985175:instance-profile/aws-ec2-full-access-role'
 
-S3_KEY_BUCKET = 'https://s3-ap-northeast-1.amazonaws.com/kiyoya-tokyo/ssh_host_keys/' + NAME
+S3_KEY_BUCKET = 's3://kiyoya-tokyo/ssh_host_keys/' + NAME
 
 # http://cloudinit.readthedocs.io/en/latest/topics/boot.html
 USERDATA = """#cloud-config
-
-bootcmd:
-  - curl {s3_key_bucket}/ssh_host_dsa_key > /etc/ssh/ssh_host_dsa_key
-  - curl {s3_key_bucket}/ssh_host_dsa_key.pub > /etc/ssh/ssh_host_dsa_key.pub
-  - curl {s3_key_bucket}/ssh_host_ecdsa_key > /etc/ssh/ssh_host_ecdsa_key
-  - curl {s3_key_bucket}/ssh_host_ecdsa_key.pub > /etc/ssh/ssh_host_ecdsa_key.pub
-  - curl {s3_key_bucket}/ssh_host_rsa > /etc/ssh/ssh_host_rsa_key
-  - curl {s3_key_bucket}/ssh_host_rsa.pub > /etc/ssh/ssh_host_rsa_key.pub
-
-ssh_deletekeys: false
-
-repo_update: true
-repo_upgrade: all
-
-packages:
-  - aws-cli
-  - git
-  - python27-boto3
-  - vim
 
 bootcmd:
   - |
@@ -65,6 +46,18 @@ bootcmd:
     /dev/xvdf /var/data/steam ext4  defaults,noatime  0 0
     EOM
 
+ssh_deletekeys: false
+
+repo_update: true
+repo_upgrade: all
+
+packages:
+  - aws-cli
+  - docker
+  - git
+  - python27-boto3
+  - vim
+
 write_files:
   - path: /var/lib/cloud/scripts/per-once/init.sh
     permissions: '0755'
@@ -73,16 +66,35 @@ write_files:
       #!/bin/bash
       set -eu
       sysctl -p /etc/sysctl.conf
-      docker network create --driver bridge steam
       git clone https://github.com/kiyoya/docker-gentoo.git /opt/docker-gentoo
       /opt/docker-gentoo/ark/init
       mount /var/data/steam
+      service docker start
+      chkconfig docker on
+      docker network create --driver bridge steam
   - path: /var/lib/cloud/scripts/per-boot/init.sh
     permissions: '0755'
     owner: root:root
     content: |
       #!/bin/bash
       set -eu
+      aws s3 cp {s3_key_bucket}/ssh_host_dsa_key /etc/ssh/ssh_host_dsa_key
+      chown root:ssh_keys /etc/ssh/ssh_host_dsa_key
+      chmod 0640 /etc/ssh/ssh_host_dsa_key
+      aws s3 cp {s3_key_bucket}/ssh_host_dsa_key.pub /etc/ssh/ssh_host_dsa_key.pub
+      aws s3 cp {s3_key_bucket}/ssh_host_ecdsa_key /etc/ssh/ssh_host_ecdsa_key
+      chown root:ssh_keys /etc/ssh/ssh_host_ecdsa_key
+      chmod 0640 /etc/ssh/ssh_host_ecdsa_key
+      aws s3 cp {s3_key_bucket}/ssh_host_ecdsa_key.pub /etc/ssh/ssh_host_ecdsa_key.pub
+      aws s3 cp {s3_key_bucket}/ssh_host_ed25519_key /etc/ssh/ssh_host_ed25519_key
+      chown root:ssh_keys /etc/ssh/ssh_host_ed25519_key
+      chmod 0640 /etc/ssh/ssh_host_ed25519_key
+      aws s3 cp {s3_key_bucket}/ssh_host_ed25519_key.pub /etc/ssh/ssh_host_ed25519_key.pub
+      aws s3 cp {s3_key_bucket}/ssh_host_rsa_key /etc/ssh/ssh_host_rsa_key
+      chown root:ssh_keys /etc/ssh/ssh_host_rsa_key
+      chmod 0640 /etc/ssh/ssh_host_rsa_key
+      aws s3 cp {s3_key_bucket}/ssh_host_rsa_key.pub /etc/ssh/ssh_host_rsa_key.pub
+      service sshd restart
       git -C /opt/docker-gentoo pull origin master
       /opt/docker-gentoo/ark/init
       set +e
@@ -90,7 +102,7 @@ write_files:
       docker rm ark
       set -e
       /opt/docker-gentoo/steam/steam pull
-      /opt/docker-gentoo/steam/steam app_update 376030
+      bash -c '/opt/docker-gentoo/steam/steam app_update 376030'
       /opt/docker-gentoo/ark/run
 """.format(s3_key_bucket=S3_KEY_BUCKET)
 
@@ -138,6 +150,12 @@ class ArkServer(object):
         instance = response['ActiveInstances'][0]
         return self._ec2.Instance(instance['InstanceId'])
 
+    def _is_spot_fleet_request_fulfilling(self, spot_fleet_request_id):
+        response = self._client.describe_spot_fleet_instances(
+                SpotFleetRequestId=spot_fleet_request_id,
+                MaxResults=1)
+        return len(response['ActiveInstances']) > 0
+
     def _is_spot_fleet_request_fulfilled(self, spot_fleet_request_id):
         paginator = self._client.get_paginator('describe_spot_fleet_requests')
         seq = iter(paginator.paginate(
@@ -174,14 +192,17 @@ class ArkServer(object):
                         'UserData': base64.b64encode(USERDATA.encode('utf-8')).decode('ascii')
                     }]})
         spot_fleet_request_id = response['SpotFleetRequestId']
-        while not self._is_spot_fleet_request_fulfilled(spot_fleet_request_id):
-            time.sleep(5)
+        while not self._is_spot_fleet_request_fulfilling(spot_fleet_request_id):
+            time.sleep(1)
         instance = self._get_spot_fleet_instance(spot_fleet_request_id)
         instance.create_tags(Tags=[
             { 'Key': 'Name', 'Value': NAME },
             { 'Key': 'kiyoya:ec2:allocation-id', 'Value': ALLOCATION_ID },
             { 'Key': 'kiyoya:ec2:block-device:sdf', 'Value': VOLUME_ID },
         ])
+        logging.warning('Waiting for the new instance: %s' % instance)
+        while not self._is_spot_fleet_request_fulfilled(spot_fleet_request_id):
+            time.sleep(5)
         return instance
 
 
