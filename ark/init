@@ -37,15 +37,22 @@ class ArkServer(object):
         volume = self._ec2.Volume(volume_id)
         for attachment in volume.attachments:
             if attachment['InstanceId'] == self._instance.id:
-                return
-        if volume.attachments:
-            for i in range(6):
-                time.sleep(10)
-                if not volume.attachments:
-                    break
+                break
+        else:
+            if volume.attachments:
+                for i in range(6):
+                    time.sleep(10)
+                    if not volume.attachments:
+                        break
         volume.attach_to_instance(
                 InstanceId=self._instance.id,
                 Device=device_name)
+        for i in range(6):
+            if volume.state == 'attached':
+                return
+            if volume.state != 'attaching':
+                raise ValueError(volume)
+            time.sleep(10)
 
 
 if __name__ == '__main__':
