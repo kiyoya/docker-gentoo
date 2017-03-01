@@ -26,7 +26,7 @@ PACKAGES="
 
 
 function run_steamcmd() {
-	docker run -it --rm \
+	docker run -i --rm \
 		-h "${NAME}" \
 		--network "${NETWORK}" \
 		--user "${RUN_UID}":"${RUN_GID}" \
