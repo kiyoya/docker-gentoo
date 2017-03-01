@@ -44,14 +44,14 @@ class ArkServer(object):
                     time.sleep(10)
                     if not volume.attachments:
                         break
-        volume.attach_to_instance(
-                InstanceId=self._instance.id,
-                Device=device_name)
+            volume.attach_to_instance(
+                    InstanceId=self._instance.id,
+                    Device=device_name)
         for i in range(6):
-            if volume.state == 'attached':
+            if volume.state == 'attached' or volume.state == 'in-use':
                 return
             if volume.state != 'attaching':
-                raise ValueError(volume)
+                raise ValueError('%s: %s' % (volume, volume.state))
             time.sleep(10)
 
 
