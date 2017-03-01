@@ -51,7 +51,7 @@ class ArkServer(object):
         for i in range(12):
             volume = self._ec2.Volume(volume_id)
             for attachment in volume.attachments:
-                if attachment['InstanceId'] == self._instance_id:
+                if attachment['InstanceId'] == self._instance.id:
                     if attachment['State'] == 'attached':
                         return
                     break
