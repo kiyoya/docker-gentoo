@@ -30,7 +30,7 @@ function run_steamcmd() {
 		-h "${NAME}" \
 		--network "${NETWORK}" \
 		--user "${RUN_UID}":"${RUN_GID}" \
-		-v "${DATADIR}":/steam \
+		-v "${DATADIR}":/steam/Steam \
 		-w /steam \
 		"${REPO}":"${TAG}" \
 		./steamcmd.sh "${@}"
@@ -41,7 +41,7 @@ app_update)
 	APP_ID="${2}"
 	run_steamcmd \
 		+login anonymous \
-		+force_install_dir /steam \
+		+force_install_dir /steam/Steam \
 		+app_update "${APP_ID}" \
 		+quit
 	;;
