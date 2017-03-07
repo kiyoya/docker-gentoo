@@ -28,9 +28,9 @@ docker run -d \
 		-nosteamclient \
 		-server
 
-sleep 10
 while true; do
 	"${ROOT}"/aws/spot-termination-time && break
+	sleep 10
 done
 
 RCON="${ROOT}"/ark/rcon
