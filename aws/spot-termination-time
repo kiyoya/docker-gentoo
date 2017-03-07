@@ -8,7 +8,7 @@ METADATA_URI = 'http://169.254.169.254/latest/meta-data/spot/termination-time'
 INTERVAL_IN_SECONDS = 5
 
 
-def get_spot_termiation_time(interval_in_seconds):
+def get_spot_termination_time(interval_in_seconds):
     while True:
         try:
             return urllib2.urlopen(METADATA_URI).read()
