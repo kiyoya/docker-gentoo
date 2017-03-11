@@ -74,8 +74,12 @@ function bootstrap_build() {
 		EOM
 		bootstrap_shell_chroot "${NAME}" -c ldconfig
 	fi
-	docker exec "${NAME}" tar -cf - -C /build . | \
-		docker import "${@:3}" - "${IMAGE}"
+	# TODO(kiyoya): Piping docker exec and docker import does not work on Windows
+	#               (both MinGW and WSL). This is a workaround until WSL supports
+	#               docker natively or docker supports MinGW better.
+	docker exec "${NAME}" tar -cf /tmp/"${NAME}".tar -C /build .
+	docker cp "${NAME}":/tmp/"${NAME}".tar /tmp/"${NAME}".tar
+	cat /tmp/"${NAME}".tar | docker import "${@:3}" - "${IMAGE}"
 
 	docker stop "${NAME}"
 	docker rm "${NAME}"
