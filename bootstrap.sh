@@ -23,7 +23,19 @@ else
 	LOG_DRIVER='json-file'
 fi
 
-case "${MSYSTEM:-}" in
+case "$(uname -a)" in
+	# Windows Subsystem for Linux
+	"Linux "*"-Microsoft "*)
+		function volumepath() {
+			python <<-EOM
+				path = '$(realpath $@)'
+				path = path.replace('/mnt/', '', 1)
+				path = path.replace('/', ':\\\\', 1).replace('/', '\\\\')
+				print(path)
+			EOM
+		}
+		;;
+	# Minimalist GNU for Windows
 	MINGW*)
 		DOCKER="$(command -v docker)"
 		function docker() {
