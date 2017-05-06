@@ -30,7 +30,7 @@ case "${1:-}" in
 build)
 	bootstrap_create "${BUILD_NAME}"
 	bootstrap_shell "${BUILD_NAME}" -c 'cat >> /etc/portage/make.conf' <<-EOM
-		"USE="\${USE} lapack"
+		USE="\${USE} lapack"
 	EOM
 	bootstrap_package_keywords "${BUILD_NAME}" <<-EOM
 		dev-python/cython ~amd64
