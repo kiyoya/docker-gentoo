@@ -12,6 +12,10 @@ https://hub.docker.com/u/kiyoya/
 ./bootstrap.sh portage sync
 ```
 
+If you are on Windows (MinGW or WSL) and using ConEmu, Docker may not work well
+with pipes. See https://github.com/moby/moby/issues/28814 for the context and
+workarounds.
+
 ## Building a new image
 
 ```shell
