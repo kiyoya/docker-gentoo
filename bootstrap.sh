@@ -86,9 +86,6 @@ function bootstrap_build() {
 		EOM
 		bootstrap_shell_chroot "${NAME}" -c ldconfig
 	fi
-	# This may not work well with ConEmu (MinGW or WSL).
-	# See https://github.com/moby/moby/issues/28814#issuecomment-295629353 for
-	# workarounds.
 	docker exec "${NAME}" tar -cf - -C /build . | \
 		docker import "${@:3}" - "${IMAGE}"
 
