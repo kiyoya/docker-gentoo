@@ -285,6 +285,14 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 						-v "${VOLUME_PORTAGE}":/usr/portage \
 						-v "${VOLUME_DISTFILES}":/usr/portage/distfiles:ro \
 						-v "${VOLUME_PACKAGES}":/usr/portage/packages:ro \
+						"${IMAGE_GENTOO}" emerge --sync "${@:3}"
+					;;
+				webrsync)
+					docker run -it --rm \
+						-h "${NAME_PORTAGE}" \
+						-v "${VOLUME_PORTAGE}":/usr/portage \
+						-v "${VOLUME_DISTFILES}":/usr/portage/distfiles:ro \
+						-v "${VOLUME_PACKAGES}":/usr/portage/packages:ro \
 						"${IMAGE_GENTOO}" emerge-webrsync "${@:3}"
 					;;
 				up)
@@ -294,7 +302,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
 					;;
 				*)
 					echo "$0 portage [ down | eclean | export | import | reload |" \
-							 "shell | sync | up ]"
+							 "shell | sync | webrsync | up ]"
 					;;
 			esac
 			;;
