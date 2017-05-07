@@ -140,22 +140,28 @@ function bootstrap_emerge_host() {
 		emerge --buildpkg --usepkg --quiet "${@:2}"
 }
 
+function bootstrap_make_conf() {
+	local NAME="${1}"
+	bootstrap_shell "${NAME}" -c \
+		"cat >> /etc/portage/make.conf"
+}
+
 function bootstrap_package_keywords() {
 	local NAME="${1}"
-	bootstrap_shell "${1}" -c \
-		"cat > /etc/portage/package.keywords/${NAME}"
+	bootstrap_shell "${NAME}" -c \
+		"cat >> /etc/portage/package.keywords/${NAME}"
 }
 
 function bootstrap_package_mask() {
 	local NAME="${1}"
-	bootstrap_shell "${1}" -c \
-		"cat > /etc/portage/package.mask/${NAME}"
+	bootstrap_shell "${NAME}" -c \
+		"cat >> /etc/portage/package.mask/${NAME}"
 }
 
 function bootstrap_package_use() {
 	local NAME="${1}"
-	bootstrap_shell "${1}" -c \
-		"cat > /etc/portage/package.use/${NAME}"
+	bootstrap_shell "${NAME}" -c \
+		"cat >> /etc/portage/package.use/${NAME}"
 }
 
 function bootstrap_shell() {
