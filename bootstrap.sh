@@ -107,24 +107,29 @@ function bootstrap_create() {
 		mkdir -p /etc/portage/package.keywords \
 		         /etc/portage/package.mask \
 		         /etc/portage/package.use
-	bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
 	bootstrap_shell "${NAME}" <<-EOM
 		set -eu
+		mkdir -p /build{/dev,/etc,/proc,/sys}
 		cp -L /etc/resolv.conf /build/etc/
-		mkdir -p /build{/dev,/proc,/sys}
 		mount -t proc proc /build/proc
 		mount --rbind /sys /build/sys
 		mount --rbind /dev /build/dev
 	EOM
+	bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
 }
 
 # TODO(kiyoya): Add a command to check affected packages by GLSA.
 #               glsa-check -t all && glsa-check -d affected
 function bootstrap_emerge() {
 	local NAME="${1}"
-	docker exec -it "${NAME}" \
+	# We don't define MAKEOPTS in /etc/portage/make.conf because the number of
+	# cores would be changed.
+	local CORES=$(docker exec -i "${NAME}" grep -c ^processor /proc/cpuinfo)
+	docker exec -it -e MAKEOPTS="-j${CORES}" \
+		"${NAME}" \
 		emerge --buildpkg --usepkg --onlydeps --with-bdeps=y --quiet "${@:2}"
-	docker exec -it "${NAME}" \
+	docker exec -it -e MAKEOPTS="-j${CORES}" \
+		"${NAME}" \
 		emerge --buildpkg --usepkg --root=/build --root-deps=rdeps \
 		--quiet "${@:2}"
 }
