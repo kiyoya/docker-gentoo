@@ -193,6 +193,16 @@ function docker_volume_exists() {
 	docker volume inspect "${VOLUME}" 1> /dev/null 2>&1
 }
 
+function docker_volume_prepare() {
+	local VOLUME="${1}"
+	local S="${2}"
+	docker volume create "${VOLUME}"
+	tar -cf - -C "${2}" . | \
+		docker run --rm -i \
+			-v "${VOLUME}":/volume \
+			busybox tar -x -f - -C /volume
+}
+
 function docker_logs() {
 	case "${LOG_DRIVER}" in
 		journald)
