@@ -188,6 +188,11 @@ function docker_image_exists() {
 	docker images "${REPO}" | awk '{print $2}' | tail -n +2 | grep -q ^"${TAG}"$
 }
 
+function docker_volume_exists() {
+	local VOLUME="${1}"
+	docker volume inspect "${VOLUME}" 1> /dev/null 2>&1
+}
+
 function docker_logs() {
 	case "${LOG_DRIVER}" in
 		journald)
