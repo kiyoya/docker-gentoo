@@ -127,11 +127,12 @@ function bootstrap_emerge() {
 	local CORES=$(docker exec -i "${NAME}" grep -c ^processor /proc/cpuinfo)
 	docker exec -it -e MAKEOPTS="-j${CORES}" \
 		"${NAME}" \
-		emerge --buildpkg --usepkg --onlydeps --with-bdeps=y --quiet "${@:2}"
+		emerge --buildpkg --usepkg --buildpkg-exclude "virtual/*" \
+		--onlydeps --with-bdeps=y --quiet "${@:2}"
 	docker exec -it -e MAKEOPTS="-j${CORES}" \
 		"${NAME}" \
-		emerge --buildpkg --usepkg --root=/build --root-deps=rdeps \
-		--quiet "${@:2}"
+		emerge --buildpkg --usepkg --buildpkg-exclude "virtual/*" \
+		--root=/build --root-deps=rdeps --quiet "${@:2}"
 }
 
 # TODO(kiyoya): Add a command to check affected packages by GLSA.
