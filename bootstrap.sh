@@ -226,6 +226,7 @@ function docker_logs() {
 function docker_promote() {
 	local IMAGE="${1}"
 	local REPO="$(echo ${IMAGE} | cut -d : -f 1)"
+	docker push "${IMAGE}"
 	log "Promoting ${IMAGE} ..."
 	if docker_image_exists "${REPO}":latest; then
 		docker tag "${REPO}":latest "${REPO}":previous
