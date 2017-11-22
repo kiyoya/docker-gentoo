@@ -36,7 +36,7 @@ case "$(uname -a)" in
 		}
 		;;
 	# Minimalist GNU for Windows
-	MINGW*)
+	MINGW*|\'MINGW*)
 		DOCKER="$(command -v docker)"
 		function docker() {
 			MSYS2_ARG_CONV_EXCL='*' "${DOCKER}" "$@"
