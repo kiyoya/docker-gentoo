@@ -2,18 +2,11 @@
 # @(#) Script to build and maintain gentoo-based docker images.
 set -eu
 
-IMAGE_GENTOO="${IMAGE_GENTOO:-gentoo/stage3-amd64}"
+IMAGE_GENTOO="${IMAGE_GENTOO:-gentoo/stage3-amd64-nomultilib}"
 NAME_PORTAGE="${NAME_PORTAGE:-portage}"
 VOLUME_PORTAGE="${VOLUME_PORTAGE:-portage}"
 VOLUME_DISTFILES="${VOLUME_DISTFILES:-portage-distfiles}"
 VOLUME_PACKAGES="${VOLUME_PACKAGES:-portage-packages}"
-
-# Fundamental packages
-BASE_PACKAGES="
-	app-shells/bash
-	sys-apps/baselayout
-	sys-apps/busybox
-	sys-libs/glibc"
 
 LOG_INFO="\033[1;31m"
 
@@ -67,25 +60,6 @@ function bootstrap_build() {
 		umount -l /build/sys
 		umount /build/proc
 	EOM
-	# Copies runtime libraries from sys-devel/gcc if not installed.
-	set +e
-	docker exec -i "${NAME}" 'test' -d /build/etc/env.d/gcc
-	local HAS_GCC=$?
-	set -e
-	if [ ${HAS_GCC} -ne 0 ]; then
-		local GCC_LIBS=$(docker exec -i "${NAME}" gcc-config -L)
-		local GCC_LIBS64=$(echo "${GCC_LIBS}" | cut -d : -f 1)
-		local GCC_LIBS32=$(echo "${GCC_LIBS}" | cut -d : -f 2)
-		bootstrap_shell "${NAME}" <<-EOM
-			set -eu
-			mkdir -p /build${GCC_LIBS32}
-			mkdir -p /build${GCC_LIBS64}
-			cp -P ${GCC_LIBS32}/lib*.so* /build${GCC_LIBS32}
-			cp -P ${GCC_LIBS64}/lib*.so* /build${GCC_LIBS64}
-			cp /etc/ld.so.conf.d/??gcc* /build/etc/ld.so.conf.d/
-		EOM
-		bootstrap_shell_chroot "${NAME}" -c ldconfig
-	fi
 	docker exec "${NAME}" tar -cf - -C /build . | \
 		docker import "${@:3}" - "${IMAGE}"
 
@@ -115,7 +89,8 @@ function bootstrap_create() {
 		mount --rbind /sys /build/sys
 		mount --rbind /dev /build/dev
 	EOM
-	bootstrap_emerge "${NAME}" ${BASE_PACKAGES}
+	bootstrap_emerge "${NAME}" -1 sys-apps/baselayout
+	bootstrap_emerge "${NAME}" @system
 }
 
 # TODO(kiyoya): Add a command to check affected packages by GLSA.
